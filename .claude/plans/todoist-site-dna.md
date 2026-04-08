@@ -204,6 +204,7 @@ Layout: flex column, padding 0 12px, gap ~4px between groups
 ```
 
 **CONTENT MAP: Sidebar**
+
 ```
   Account avatar      → initials/photo circle [26×26px], br:50%
   Account name        → "Michael" | 13px/600/#d1d1d1
@@ -612,17 +613,17 @@ COPY VOICE PATTERN:
 
 ## SITE DNA Summary
 
-| Property | Value |
-|---|---|
-| Design language | Functional dark SaaS — flat, dense, utility-first |
-| Primary bg | #1f1f1f (main) / #262626 (sidebar) |
-| Brand color | #d04348 (today badge) / #e26a60 (Add task, active nav text) |
-| Active nav | bg:#472525 + text:#f07f75 + br:5px |
-| Typography | System-ui stack, tight scale: 10/12/13/14/26px |
-| Layout | Two-panel (280px sidebar + flex-grow main) |
-| Sticky system | 3 zones: top bar 56px, day strip 29px, section headers 85px |
-| Radius | 5px universal (10px large for modals) |
-| Transitions | 300ms cubic-bezier(0.4,0,0.2,1) on color+bg only |
-| Animations | None (scroll-triggered, no entrance effects) |
-| Framework | React + CSS Modules + Reactist design system |
+| Property        | Value                                                            |
+| --------------- | ---------------------------------------------------------------- |
+| Design language | Functional dark SaaS — flat, dense, utility-first                |
+| Primary bg      | #1f1f1f (main) / #262626 (sidebar)                               |
+| Brand color     | #d04348 (today badge) / #e26a60 (Add task, active nav text)      |
+| Active nav      | bg:#472525 + text:#f07f75 + br:5px                               |
+| Typography      | System-ui stack, tight scale: 10/12/13/14/26px                   |
+| Layout          | Two-panel (280px sidebar + flex-grow main)                       |
+| Sticky system   | 3 zones: top bar 56px, day strip 29px, section headers 85px      |
+| Radius          | 5px universal (10px large for modals)                            |
+| Transitions     | 300ms cubic-bezier(0.4,0,0.2,1) on color+bg only                 |
+| Animations      | None (scroll-triggered, no entrance effects)                     |
+| Framework       | React + CSS Modules + Reactist design system                     |
 | Priority system | 4 levels: red/orange/blue/gray (#ff7066/#ff9a13/#5297ff/#a9a9a9) |

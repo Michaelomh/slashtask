@@ -10,16 +10,16 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 
 ## Tech Stack
 
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 16.2.2 (App Router) |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 |
+| Layer           | Choice                              |
+| --------------- | ----------------------------------- |
+| Framework       | Next.js 16.2.2 (App Router)         |
+| Language        | TypeScript                          |
+| Styling         | Tailwind CSS v4                     |
 | Database + Auth | Supabase (Postgres + Supabase Auth) |
-| Markdown | `react-markdown` + editor toggle |
-| Date parsing | `chrono-node` (natural language) |
-| Recurrence | `rrule` |
-| Deployment | Vercel |
+| Markdown        | `react-markdown` + editor toggle    |
+| Date parsing    | `chrono-node` (natural language)    |
+| Recurrence      | `rrule`                             |
+| Deployment      | Vercel                              |
 
 ---
 
@@ -35,59 +35,65 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 ## Database Schema
 
 ### `projects`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| name | text | |
-| color | text | hex color |
-| emoji | text | single emoji |
-| parent_id | uuid FK → projects | nullable, for sub-projects |
-| order | int | display order |
-| created_at | timestamptz | |
+
+| Column     | Type               | Notes                      |
+| ---------- | ------------------ | -------------------------- |
+| id         | uuid PK            |                            |
+| name       | text               |                            |
+| color      | text               | hex color                  |
+| emoji      | text               | single emoji               |
+| parent_id  | uuid FK → projects | nullable, for sub-projects |
+| order      | int                | display order              |
+| created_at | timestamptz        |                            |
 
 ### `tasks`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| title | text | |
-| description | text | markdown |
-| project_id | uuid FK → projects | nullable |
-| parent_task_id | uuid FK → tasks ON DELETE CASCADE | nullable, for sub-tasks (one level deep only) |
-| priority | int | 1=low, 2=medium, 3=high, 4=urgent |
-| effort | int | 1–4 |
-| due_date | date | nullable |
-| is_completed | bool | default false |
-| completed_at | timestamptz | nullable |
-| recurrence_rule | text | e.g. `RRULE:FREQ=WEEKLY;BYDAY=MO` |
-| order | int | display order |
-| created_at | timestamptz | |
+
+| Column          | Type                              | Notes                                         |
+| --------------- | --------------------------------- | --------------------------------------------- |
+| id              | uuid PK                           |                                               |
+| title           | text                              |                                               |
+| description     | text                              | markdown                                      |
+| project_id      | uuid FK → projects                | nullable                                      |
+| parent_task_id  | uuid FK → tasks ON DELETE CASCADE | nullable, for sub-tasks (one level deep only) |
+| priority        | int                               | 1=low, 2=medium, 3=high, 4=urgent             |
+| effort          | int                               | 1–4                                           |
+| due_date        | date                              | nullable                                      |
+| is_completed    | bool                              | default false                                 |
+| completed_at    | timestamptz                       | nullable                                      |
+| recurrence_rule | text                              | e.g. `RRULE:FREQ=WEEKLY;BYDAY=MO`             |
+| order           | int                               | display order                                 |
+| created_at      | timestamptz                       |                                               |
 
 ### `streaks`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| date | date | one row per day |
-| completed_any | bool | at least 1 task done |
-| completed_all_due | bool | all due tasks completed |
+
+| Column            | Type    | Notes                   |
+| ----------------- | ------- | ----------------------- |
+| id                | uuid PK |                         |
+| date              | date    | one row per day         |
+| completed_any     | bool    | at least 1 task done    |
+| completed_all_due | bool    | all due tasks completed |
 
 ### `achievements`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| key | text | e.g. `first_task`, `streak_7` |
-| unlocked_at | timestamptz | |
+
+| Column      | Type        | Notes                         |
+| ----------- | ----------- | ----------------------------- |
+| id          | uuid PK     |                               |
+| key         | text        | e.g. `first_task`, `streak_7` |
+| unlocked_at | timestamptz |                               |
 
 ### `daily_stats` (powers the heatmap)
-| Column | Type | Notes |
-|---|---|---|
-| date | date PK | |
-| tasks_completed | int | incremented on task completion |
+
+| Column          | Type    | Notes                          |
+| --------------- | ------- | ------------------------------ |
+| date            | date PK |                                |
+| tasks_completed | int     | incremented on task completion |
 
 ---
 
 ## Features
 
 ### 1. Auth
+
 - `/login` page with email + password form
 - Middleware protects all routes
 - No sign-up page
@@ -95,6 +101,7 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 ### 2. Task CRUD
 
 **Creating a task:**
+
 - Quick-add input bar (always visible, like Todoist)
 - Inline shortcut parsing as you type:
   - `#project-name` → as the user types `#`, a live dropdown of matching project names appears; selecting one assigns the project. If no match is found, no project is assigned (projects are not auto-created)
@@ -104,12 +111,14 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 - Full task detail modal/panel for description (markdown with toggle preview), sub-tasks, recurrence
 
 **Views:**
+
 - **Today** — tasks due today
 - **Upcoming** — all tasks with a future due date, grouped by date, loaded via infinite scroll as the user scrolls down
 - **Project** — tasks filtered by selected project
 - **Completed** — historical completed tasks, filterable by date range
 
 **Editing/Deleting:**
+
 - Click task to open detail panel
 - Inline checkbox to mark complete
 - Completing a recurring task: the original task is marked complete and a **new task row** is inserted with the next due date calculated from the `recurrence_rule` via `rrule`; this preserves full per-occurrence history
@@ -118,11 +127,13 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 - Tasks can be **drag-to-reordered** within any view (Today, Upcoming, Project); the updated `order` is persisted
 
 ### 3. Projects
+
 - Sidebar lists all projects (nested, with expand/collapse for sub-projects)
 - Create/edit/delete project with name, emoji picker, color picker
 - Drag to reorder projects in sidebar
 
 ### 4. Search
+
 - Global search (`Cmd+K`) across task titles and descriptions
 - Results grouped by project
 
@@ -130,20 +141,22 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 
 Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a text input or textarea.
 
-| Shortcut | Action |
-|---|---|
-| `Q` | Open quick-add task input |
-| `Cmd+K` | Open global search |
+| Shortcut | Action                    |
+| -------- | ------------------------- |
+| `Q`      | Open quick-add task input |
+| `Cmd+K`  | Open global search        |
 
 > More shortcuts can be added here as the app grows (e.g. navigating between views, marking tasks complete).
 
 ### 5. Gamification
 
 **Streaks:**
+
 - "At least 1 task" — current streak + longest streak
 - "All due tasks completed" — current streak + longest streak (tracked separately)
 
 **Heatmap:**
+
 - 12-month GitHub-style grid
 - Colored by tasks completed per day
 
@@ -170,6 +183,7 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 ## UI Layout
 
 ### App Shell
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Sidebar (240px)     │  Main Content                │
@@ -195,15 +209,18 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 ```
 
 ### Task Item
+
 ```
 ☐  Buy groceries  #Personal  Apr 10  !!!  $$
 ```
+
 - Checkbox → marks complete (with animation)
 - Click title → opens task detail panel (slides in from right)
 - Priority indicated by colored left border
 - Overdue tasks shown in red
 
 ### Task Detail Panel
+
 ```
 ┌─────────────────────────────────┐
 │  [Title — editable inline]      │
@@ -226,6 +243,7 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 ```
 
 ### Gamification Page
+
 ```
 ┌──────────────────────────────────────────────┐
 │  Streaks                                     │
@@ -245,15 +263,17 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 ## Implementation Phases
 
 ### Phase 1 — Foundation
-- [ ] Set up Supabase project, configure env vars
+
+- [x] Set up Supabase project, configure env vars
 - [ ] Create all DB tables (schema above)
 - [ ] Enable Row Level Security (RLS) on all tables
-- [ ] Install dependencies: `@supabase/supabase-js`, `@supabase/ssr`, `chrono-node`, `react-markdown`, `rrule`
+- [x] Install dependencies: `@supabase/supabase-js`, `@supabase/ssr`, `chrono-node`, `react-markdown`, `rrule`
 - [ ] Set up Supabase middleware for auth protection
 - [ ] Build `/login` page (email + password form)
 - [ ] Verify all routes redirect to `/login` when unauthenticated
 
 ### Phase 2 — Core Layout
+
 - [ ] Build app shell: sidebar + main content layout
 - [ ] Sidebar: navigation links (Today, Upcoming, Search, Completed)
 - [ ] Sidebar: projects list with nested sub-projects (expand/collapse)
@@ -261,12 +281,14 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 - [ ] Responsive layout (sidebar collapses on smaller screens)
 
 ### Phase 3 — Projects
+
 - [ ] Create/edit/delete project (name, emoji, color, parent project)
 - [ ] Projects appear in sidebar, nested correctly
 - [ ] Project view: clicking a project shows its tasks in main content
 - [ ] Drag to reorder projects in sidebar
 
 ### Phase 4 — Task CRUD
+
 - [ ] Quick-add input bar (always visible at top of main content)
 - [ ] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
 - [ ] Task list renders for current view (Today, Upcoming, Project)
@@ -281,12 +303,14 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 - [ ] Completed view: list of completed tasks, filterable by date range
 
 ### Phase 5 — Search
+
 - [ ] `Cmd+K` opens global search modal
 - [ ] Search queries tasks by title and description
 - [ ] Results grouped by project
 - [ ] Clicking a result opens the task detail panel
 
 ### Phase 6 — Gamification
+
 - [ ] On task completion: increment `daily_stats.tasks_completed` for today
 - [ ] Streak calculation logic: update `streaks` table in real-time on task completion/uncompletion (no cron job)
 - [ ] Streak widget in sidebar shows live values
@@ -295,11 +319,13 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 - [ ] Achievements panel: grid showing locked/unlocked badges
 
 ### Phase 7 — Keyboard Shortcuts
+
 - [ ] Global keyboard shortcut handler (disabled when focus is in an input/textarea)
 - [ ] `Q` → focuses/opens quick-add task input
 - [ ] `Cmd+K` → opens global search modal (consolidate with Phase 5)
 
 ### Phase 8 — Polish & Deploy
+
 - [ ] Loading states and optimistic UI updates for task actions
 - [ ] Error handling on save failure: (1) roll back optimistic change, (2) show brief toast notification, (3) show persistent inline error near the task with a "click here" link navigating directly to it
 - [ ] Overdue tasks highlighted in red
