@@ -10,16 +10,16 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 
 ## Tech Stack
 
-| Layer           | Choice                              |
-| --------------- | ----------------------------------- |
-| Framework       | Next.js 16.2.2 (App Router)         |
-| Language        | TypeScript                          |
-| Styling         | Tailwind CSS v4                     |
-| Database + Auth | Supabase (Postgres + Supabase Auth) |
-| Markdown        | `react-markdown` + editor toggle    |
-| Date parsing    | `chrono-node` (natural language)    |
-| Recurrence      | `rrule`                             |
-| Deployment      | Vercel                              |
+| Layer           | Choice                                 |
+| --------------- | -------------------------------------- |
+| Framework       | ✅ Next.js 16.2.2 (App Router)         |
+| Language        | ✅ TypeScript                          |
+| Styling         | ✅ Tailwind CSS v4                     |
+| Database + Auth | ✅ Supabase (Postgres + Supabase Auth) |
+| Markdown        | `react-markdown` + editor toggle       |
+| Date parsing    | `chrono-node` (natural language)       |
+| Recurrence      | `rrule`                                |
+| Deployment      | ✅ Vercel                              |
 
 ---
 
@@ -36,33 +36,33 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 
 ### `projects`
 
-| Column     | Type               | Notes                      |
-| ---------- | ------------------ | -------------------------- |
-| id         | uuid PK            |                            |
-| name       | text               |                            |
-| color      | text               | hex color                  |
-| emoji      | text               | single emoji               |
-| parent_id  | uuid FK → projects | nullable, for sub-projects |
-| order      | int                | display order              |
-| created_at | timestamptz        |                            |
+| Column     | Type        | Notes         |
+| ---------- | ----------- | ------------- |
+| id         | uuid PK     |               |
+| name       | text        |               |
+| color      | text        | hex color     |
+| emoji      | text        | single emoji  |
+| order      | int         | display order |
+| created_at | timestamptz |               |
 
 ### `tasks`
 
-| Column          | Type                              | Notes                                         |
-| --------------- | --------------------------------- | --------------------------------------------- |
-| id              | uuid PK                           |                                               |
-| title           | text                              |                                               |
-| description     | text                              | markdown                                      |
-| project_id      | uuid FK → projects                | nullable                                      |
-| parent_task_id  | uuid FK → tasks ON DELETE CASCADE | nullable, for sub-tasks (one level deep only) |
-| priority        | int                               | 1=low, 2=medium, 3=high, 4=urgent             |
-| effort          | int                               | 1–4                                           |
-| due_date        | date                              | nullable                                      |
-| is_completed    | bool                              | default false                                 |
-| completed_at    | timestamptz                       | nullable                                      |
-| recurrence_rule | text                              | e.g. `RRULE:FREQ=WEEKLY;BYDAY=MO`             |
-| order           | int                               | display order                                 |
-| created_at      | timestamptz                       |                                               |
+| Column           | Type                              | Notes                                           |
+| ---------------- | --------------------------------- | ----------------------------------------------- |
+| id               | uuid PK                           |                                                 |
+| title            | text                              |                                                 |
+| description      | text                              | markdown                                        |
+| description_text | varchar(500)                      | plain text, stripped of markdown, max 500 chars |
+| project_id       | uuid FK → projects                | nullable                                        |
+| parent_task_id   | uuid FK → tasks ON DELETE CASCADE | nullable, for sub-tasks (one level deep only)   |
+| priority         | int                               | 1=low, 2=medium, 3=high, 4=urgent               |
+| effort           | int                               | 1–4                                             |
+| due_date         | date                              | nullable                                        |
+| is_completed     | bool                              | default false                                   |
+| completed_at     | timestamptz                       | nullable                                        |
+| recurrence_rule  | text                              | e.g. `RRULE:FREQ=WEEKLY;BYDAY=MO`               |
+| order            | int                               | display order                                   |
+| created_at       | timestamptz                       |                                                 |
 
 ### `streaks`
 
@@ -80,6 +80,18 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 | id          | uuid PK     |                               |
 | key         | text        | e.g. `first_task`, `streak_7` |
 | unlocked_at | timestamptz |                               |
+
+### `activity_log`
+
+| Column     | Type                     | Notes                                                                                                  |
+| ---------- | ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| id         | uuid PK                  |                                                                                                        |
+| task_id    | uuid FK → tasks SET NULL | nullable — preserved when task is deleted                                                              |
+| task_title | text                     | snapshot of title at time of event                                                                     |
+| event_type | text                     | `task_completed`, `task_uncompleted`, `task_title_changed`, `task_description_changed`, `task_deleted` |
+| old_value  | text                     | nullable — previous title or plain-text description                                                    |
+| new_value  | text                     | nullable — updated title or plain-text description                                                     |
+| created_at | timestamptz              |                                                                                                        |
 
 ### `daily_stats` (powers the heatmap)
 
@@ -128,7 +140,7 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 
 ### 3. Projects
 
-- Sidebar lists all projects (nested, with expand/collapse for sub-projects)
+- Sidebar lists all projects (flat list)
 - Create/edit/delete project with name, emoji picker, color picker
 - Drag to reorder projects in sidebar
 
@@ -198,7 +210,6 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 │                      │                              │
 │  ─ Projects ─        │                              │
 │  > Work              │                              │
-│    > Sub-project     │                              │
 │  > Personal          │                              │
 │                      │                              │
 │  ─ Stats ─           │                              │
@@ -265,24 +276,24 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 ### Phase 1 — Foundation
 
 - [x] Set up Supabase project, configure env vars
-- [ ] Create all DB tables (schema above)
-- [ ] Enable Row Level Security (RLS) on all tables
+- [x] Create all DB tables (schema above)
+- [x] Enable Row Level Security (RLS) on all tables
 - [x] Install dependencies: `@supabase/supabase-js`, `@supabase/ssr`, `chrono-node`, `react-markdown`, `rrule`
-- [ ] Set up Supabase middleware for auth protection
-- [ ] Build `/login` page (email + password form)
-- [ ] Verify all routes redirect to `/login` when unauthenticated
+- [x] Set up Supabase middleware for auth protection
+- [x] Build `/login` page (email + password form)
+- [x] Verify all routes redirect to `/login` when unauthenticated
 
 ### Phase 2 — Core Layout
 
 - [ ] Build app shell: sidebar + main content layout
 - [ ] Sidebar: navigation links (Today, Upcoming, Search, Completed)
-- [ ] Sidebar: projects list with nested sub-projects (expand/collapse)
+- [ ] Sidebar: projects list (flat)
 - [ ] Sidebar: streak widget (static placeholder for now)
 - [ ] Responsive layout (sidebar collapses on smaller screens)
 
 ### Phase 3 — Projects
 
-- [ ] Create/edit/delete project (name, emoji, color, parent project)
+- [ ] Create/edit/delete project (name, emoji, color)
 - [ ] Projects appear in sidebar, nested correctly
 - [ ] Project view: clicking a project shows its tasks in main content
 - [ ] Drag to reorder projects in sidebar
