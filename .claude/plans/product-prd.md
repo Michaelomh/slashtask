@@ -285,11 +285,12 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 
 ### Phase 2 — Core Layout
 
-- [ ] Build app shell: sidebar + main content layout
-- [ ] Sidebar: navigation links (Today, Upcoming, Search, Completed)
-- [ ] Sidebar: projects list (flat)
-- [ ] Sidebar: streak widget (static placeholder for now)
-- [ ] Responsive layout (sidebar collapses on smaller screens)
+- [x] Build app shell: sidebar + main content layout
+- [ ] Sidebar: navigation links (Today, Upcoming, Completed)
+- [ ] Sidebar: projects list
+- [ ] Task list renders for current view (Today, Upcoming, Project)
+- [x] Upcoming view: infinite scroll — load more date-grouped tasks as user scrolls
+- [x] Responsive layout (sidebar collapses on smaller screens)
 
 ### Phase 3 — Projects
 
@@ -302,8 +303,6 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 
 - [ ] Quick-add input bar (always visible at top of main content)
 - [ ] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
-- [ ] Task list renders for current view (Today, Upcoming, Project)
-- [ ] Upcoming view: infinite scroll — load more date-grouped tasks as user scrolls
 - [ ] Drag-to-reorder tasks within any view; persist updated `order` to DB
 - [ ] Checkbox to mark task complete (with animation)
 - [ ] Task detail panel (slides in from right)
