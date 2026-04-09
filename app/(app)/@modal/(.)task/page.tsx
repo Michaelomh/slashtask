@@ -1,3 +1,5 @@
-export default function NewTaskModal() {
-  return null; // implemented in Step 10
+import { NewTaskModal } from '@/components/new-task-modal';
+
+export default function InterceptedNewTaskPage() {
+  return <NewTaskModal />;
 }
