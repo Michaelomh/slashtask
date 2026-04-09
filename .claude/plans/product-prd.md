@@ -43,6 +43,7 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 | color      | text        | hex color     |
 | emoji      | text        | single emoji  |
 | order      | int         | display order |
+| is_deleted | bool        | default false |
 | created_at | timestamptz |               |
 
 ### `tasks`
@@ -59,6 +60,7 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 | effort           | int                               | 1–4                                             |
 | due_date         | date                              | nullable                                        |
 | is_completed     | bool                              | default false                                   |
+| is_deleted       | bool                              | default false                                   |
 | completed_at     | timestamptz                       | nullable                                        |
 | recurrence_rule  | text                              | e.g. `RRULE:FREQ=WEEKLY;BYDAY=MO`               |
 | order            | int                               | display order                                   |
@@ -273,6 +275,8 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 
 ## Implementation Phases
 
+### Milestone 1 - MVP
+
 ### Phase 1 — Foundation
 
 - [x] Set up Supabase project, configure env vars
@@ -285,33 +289,40 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 
 ### Phase 2 — Core Layout
 
-- [ ] Build app shell: sidebar + main content layout
-- [ ] Sidebar: navigation links (Today, Upcoming, Search, Completed)
-- [ ] Sidebar: projects list (flat)
-- [ ] Sidebar: streak widget (static placeholder for now)
-- [ ] Responsive layout (sidebar collapses on smaller screens)
+- [x] Build app shell: sidebar + main content layout
+- [x] Sidebar: navigation links (Today, Upcoming, Completed)
+- [x] Sidebar: projects list
+- [x] Task list renders for current view (Today, Upcoming, Project)
+- [x] Upcoming view: infinite scroll — load more date-grouped tasks as user scrolls
+- [x] Responsive layout (sidebar collapses on smaller screens)
 
 ### Phase 3 — Projects
 
-- [ ] Create/edit/delete project (name, emoji, color)
-- [ ] Projects appear in sidebar, nested correctly
-- [ ] Project view: clicking a project shows its tasks in main content
-- [ ] Drag to reorder projects in sidebar
+- [ ] Create project (id, name, emoji, color)
+- [ ] Update project (name, emoji, color)
+- [ ] Delete project.
+- [x] Projects appear in sidebar
+- [x] Project view: clicking a project shows its tasks in main content
 
 ### Phase 4 — Task CRUD
 
 - [ ] Quick-add input bar (always visible at top of main content)
 - [ ] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
-- [ ] Task list renders for current view (Today, Upcoming, Project)
-- [ ] Upcoming view: infinite scroll — load more date-grouped tasks as user scrolls
 - [ ] Drag-to-reorder tasks within any view; persist updated `order` to DB
 - [ ] Checkbox to mark task complete (with animation)
 - [ ] Task detail panel (slides in from right)
 - [ ] Edit title, description (markdown with toggle preview), project, due date, priority, effort
-- [ ] Delete task: cascade-delete sub-tasks; show confirmation dialog if sub-tasks exist
+- [ ] Delete task: cascade-delete sub-tasks; show confirmation dialog if sub-tasks exist`
 - [ ] Sub-tasks: add, complete, delete within detail panel (one level deep only — no nested sub-tasks)
 - [ ] Recurring tasks: on completion, mark original complete and insert new task row with next due date from `rrule`
 - [ ] Completed view: list of completed tasks, filterable by date range
+
+### Phase X - Clean up.
+
+- [ ] Make sure that when things move, there is a loading screen or something. Or load first and then show data later, or show loading screen.
+- [ ]
+
+### Milestone 2 - REFINEMENT
 
 ### Phase 5 — Search
 
