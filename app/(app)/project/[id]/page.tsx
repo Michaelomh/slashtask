@@ -1,24 +1,51 @@
-'use client';
-
 import { DateGroup, groupTasksByDate } from '@/components/date-group';
-import { mockProjects, mockTasks } from '@/lib/mock-data';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { use } from 'react';
 
-export default function ProjectPage({
+export default async function ProjectPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
-  const project = mockProjects.find((p) => p.id === id);
+  const { id } = await params;
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
-  if (!project) notFound();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const projectTasks = mockTasks.filter(
-    (t) => t.project_id === id && !t.is_completed
-  );
-  const groups = groupTasksByDate(projectTasks);
+  const [projectResult, tasksResult, projectsResult] = await Promise.all([
+    supabase
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user!.id)
+      .eq('is_deleted', false)
+      .single(),
+    supabase
+      .from('tasks')
+      .select('*')
+      .eq('project_id', id)
+      .eq('user_id', user!.id)
+      .eq('is_deleted', false)
+      .eq('is_completed', false)
+      .order('due_date', { ascending: true })
+      .order('order', { ascending: true }),
+    supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', user!.id)
+      .eq('is_deleted', false),
+  ]);
+
+  if (!projectResult.data) notFound();
+
+  const project = projectResult.data;
+  const tasks = tasksResult.data ?? [];
+  const projects = projectsResult.data ?? [];
+  const groups = groupTasksByDate(tasks);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -33,7 +60,7 @@ export default function ProjectPage({
         </p>
       ) : (
         groups.map((group) => (
-          <DateGroup key={group.date} group={group} projects={mockProjects} />
+          <DateGroup key={group.date} group={group} projects={projects} />
         ))
       )}
     </div>

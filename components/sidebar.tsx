@@ -1,12 +1,19 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { mockProjects, type Project } from '@/lib/mock-data';
+import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CalendarDays, CheckCircle2, CirclePlus, MoreHorizontal, Plus } from 'lucide-react';
+import {
+  CalendarDays,
+  CheckCircle2,
+  CirclePlus,
+  MoreHorizontal,
+  Plus,
+} from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { ProjectFormDialog } from './project-form-dialog';
 
 const navLinks = [
@@ -15,27 +22,60 @@ const navLinks = [
   { href: '/completed', label: 'Completed', icon: CheckCircle2 },
 ];
 
-export function SidebarContent() {
+interface SidebarContentProps {
+  initialProjects: Project[];
+}
+
+export function SidebarContent({ initialProjects }: SidebarContentProps) {
   const pathname = usePathname();
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
 
-  function addProject(data: Omit<Project, 'taskCount'>) {
-    setProjects((prev) => [
-      ...prev,
-      { ...data, order: prev.length + 1, taskCount: 0 },
-    ]);
+  async function handleCreate(
+    data: Omit<Project, 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'>
+  ) {
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, order: projects.length + 1 }),
+    });
+    if (!res.ok) {
+      toast.error('Failed to create project');
+      return;
+    }
+    const created: Project = await res.json();
+    setProjects((prev) => [...prev, created]);
+    router.refresh();
   }
 
-  function updateProject(id: string, data: Omit<Project, 'taskCount'>) {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...data } : p))
-    );
+  async function handleUpdate(
+    id: string,
+    data: Omit<Project, 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'>
+  ) {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      toast.error('Failed to update project');
+      return;
+    }
+    const updated: Project = await res.json();
+    setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    router.refresh();
   }
 
-  function deleteProject(id: string) {
+  async function handleDelete(id: string) {
+    const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toast.error('Failed to delete project');
+      return;
+    }
     setProjects((prev) => prev.filter((p) => p.id !== id));
+    router.refresh();
   }
 
   return (
@@ -68,12 +108,12 @@ export function SidebarContent() {
       <div className="flex flex-col gap-1">
         {/* Heading row */}
         <div className="flex items-center px-3">
-          <p className="flex-1 text-xs font-semibold tracking-wider text-sidebar-foreground/50 uppercase">
+          <p className="text-sidebar-foreground/50 flex-1 text-xs font-semibold tracking-wider uppercase">
             My Projects
           </p>
           <button
             onClick={() => setCreateOpen(true)}
-            className="rounded-md p-0.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+            className="text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground rounded-md p-0.5 transition-colors"
             aria-label="Add project"
           >
             <Plus className="size-3.5" />
@@ -100,14 +140,6 @@ export function SidebarContent() {
                   </span>
                   <span className="flex-1 truncate">{project.name}</span>
 
-                  {/* Task count — hidden on hover */}
-                  <Badge
-                    variant="secondary"
-                    className="ml-auto h-5 min-w-5 shrink-0 px-1.5 text-xs group-hover/project:hidden"
-                  >
-                    {project.taskCount}
-                  </Badge>
-
                   {/* More button — shown on hover */}
                   <button
                     onClick={(e) => {
@@ -115,11 +147,18 @@ export function SidebarContent() {
                       e.stopPropagation();
                       setEditTarget(project);
                     }}
-                    className="ml-auto hidden size-5 shrink-0 items-center justify-center rounded text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-hover/project:flex"
+                    className="text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ml-auto hidden size-5 shrink-0 items-center justify-center rounded transition-colors group-hover/project:flex"
                     aria-label={`Edit ${project.name}`}
                   >
                     <MoreHorizontal className="size-3.5" />
                   </button>
+
+                  <Badge
+                    variant="secondary"
+                    className="ml-auto h-5 min-w-5 shrink-0 px-1.5 text-xs group-hover/project:hidden"
+                  >
+                    1
+                  </Badge>
                 </Link>
               </div>
             );
@@ -132,7 +171,7 @@ export function SidebarContent() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         mode="create"
-        onSave={addProject}
+        onSave={handleCreate}
       />
 
       {/* Edit dialog */}
@@ -140,21 +179,27 @@ export function SidebarContent() {
         <ProjectFormDialog
           key={editTarget.id}
           open={!!editTarget}
-          onOpenChange={(open) => { if (!open) setEditTarget(null); }}
+          onOpenChange={(open) => {
+            if (!open) setEditTarget(null);
+          }}
           mode="edit"
           initialData={editTarget}
-          onSave={(data) => updateProject(editTarget.id, data)}
-          onDelete={() => deleteProject(editTarget.id)}
+          onSave={(data) => handleUpdate(editTarget.id, data)}
+          onDelete={() => handleDelete(editTarget.id)}
         />
       )}
     </div>
   );
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  initialProjects: Project[];
+}
+
+export function Sidebar({ initialProjects }: SidebarProps) {
   return (
     <aside className="border-sidebar-border bg-sidebar hidden w-64 shrink-0 border-r md:flex md:flex-col">
-      <SidebarContent />
+      <SidebarContent initialProjects={initialProjects} />
     </aside>
   );
 }

@@ -1,16 +1,19 @@
 'use client';
 
-import { type Project, type Task } from '@/lib/mock-data';
+import { type Project, type Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isPast, startOfDay } from 'date-fns';
-import { Circle } from 'lucide-react';
+import { CheckCircle2, Circle } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 const priorityBorder: Record<number, string> = {
-  1: 'border-l-blue-500',
+  1: 'border-l-red-500',
   2: 'border-l-orange-500',
-  3: 'border-l-red-500',
-  4: 'border-l-red-600',
+  3: 'border-l-blue-500',
+  4: 'border-l-transparent',
 };
 
 interface TaskItemProps {
@@ -19,17 +22,40 @@ interface TaskItemProps {
 }
 
 export function TaskItem({ task, project }: TaskItemProps) {
+  const router = useRouter();
+  const [completed, setCompleted] = useState(task.is_completed);
+
   const isOverdue =
     task.due_date !== null &&
     isPast(startOfDay(new Date(task.due_date + 'T00:00:00'))) &&
-    !task.is_completed;
+    !completed;
+
+  async function handleToggle(e: React.MouseEvent) {
+    e.preventDefault();
+    const next = !completed;
+    setCompleted(next);
+
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_completed: next }),
+    });
+
+    if (!res.ok) {
+      setCompleted(!next);
+      toast.error('Failed to update task');
+      return;
+    }
+
+    router.refresh();
+  }
 
   return (
     <Link
       href={`/task/${task.id}`}
       className={cn(
         'group flex items-start gap-3 border-b border-border/50 border-l-2 py-3 pl-3 pr-4 transition-colors hover:bg-muted/30',
-        task.priority > 1 ? priorityBorder[task.priority] : 'border-l-transparent'
+        priorityBorder[task.priority]
       )}
     >
       {/* Checkbox */}
@@ -37,10 +63,15 @@ export function TaskItem({ task, project }: TaskItemProps) {
         role="button"
         tabIndex={0}
         aria-label="Complete task"
-        onClick={(e) => e.preventDefault()}
+        onClick={handleToggle}
+        onKeyDown={(e) => e.key === 'Enter' && handleToggle(e as never)}
         className="mt-0.5 shrink-0 text-muted-foreground/50 transition-colors hover:text-primary"
       >
-        <Circle className="size-4" />
+        {completed ? (
+          <CheckCircle2 className="size-4 text-primary" />
+        ) : (
+          <Circle className="size-4" />
+        )}
       </span>
 
       {/* Content */}
@@ -49,7 +80,7 @@ export function TaskItem({ task, project }: TaskItemProps) {
           className={cn(
             'truncate text-sm',
             isOverdue ? 'text-destructive' : 'text-foreground',
-            task.is_completed && 'text-muted-foreground line-through'
+            completed && 'text-muted-foreground line-through'
           )}
         >
           {task.title}

@@ -9,12 +9,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { mockProjects, type Project } from '@/lib/mock-data';
+import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import { ChevronDown, Flag, Inbox } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const PRIORITIES = [
   { value: 1 as const, label: 'Priority 1', color: 'text-red-500' },
@@ -23,22 +26,48 @@ const PRIORITIES = [
   { value: 4 as const, label: 'Priority 4', color: 'text-muted-foreground' },
 ];
 
-export function NewTaskModal() {
+interface NewTaskModalProps {
+  projects: Project[];
+}
+
+export function NewTaskModal({ projects }: NewTaskModalProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [dueDate, setDueDate] = useState<Date | null>(new Date());
   const [priority, setPriority] = useState<1 | 2 | 3 | 4>(4);
   const [project, setProject] = useState<Project | null>(null);
+  const [saving, setSaving] = useState(false);
 
   function handleClose() {
     router.back();
   }
 
-  function handleSubmit() {
-    if (!title.trim()) return;
-    // Wire to DB later
-    handleClose();
+  async function handleSubmit() {
+    if (!title.trim() || saving) return;
+    setSaving(true);
+
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title.trim(),
+        description_text: description.trim() || null,
+        project_id: project?.id ?? null,
+        priority,
+        effort: 2,
+        due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
+      }),
+    });
+
+    if (!res.ok) {
+      toast.error('Failed to create task');
+      setSaving(false);
+      return;
+    }
+
+    router.back();
+    router.refresh();
   }
 
   const selectedPriority = PRIORITIES.find((p) => p.value === priority)!;
@@ -130,7 +159,7 @@ export function NewTaskModal() {
                 <Inbox className="size-3.5" />
                 No Project
               </DropdownMenuItem>
-              {mockProjects.map((p) => (
+              {projects.map((p) => (
                 <DropdownMenuItem
                   key={p.id}
                   onClick={() => setProject(p)}
@@ -145,10 +174,11 @@ export function NewTaskModal() {
           </DropdownMenu>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleClose}>
+            <Button variant="outline" size="sm" onClick={handleClose} disabled={saving}>
               Cancel
             </Button>
-            <Button size="sm" disabled={!title.trim()} onClick={handleSubmit}>
+            <Button size="sm" disabled={!title.trim() || saving} onClick={handleSubmit}>
+              {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
               Add task
             </Button>
           </div>

@@ -3,7 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { type Project } from '@/lib/mock-data';
+import { Spinner } from '@/components/ui/spinner';
+import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -21,21 +22,15 @@ const COLOR_OPTIONS = [
   '#ff5722', '#795548', '#607d8b', '#34495e',
 ];
 
-function toKebabCase(str: string): string {
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
-}
+type ProjectPayload = Omit<Project, 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'>;
 
 interface ProjectFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';
   initialData?: Project;
-  onSave: (data: Omit<Project, 'taskCount'>) => void;
-  onDelete?: () => void;
+  onSave: (data: ProjectPayload) => Promise<void>;
+  onDelete?: () => Promise<void>;
 }
 
 export function ProjectFormDialog({
@@ -50,30 +45,43 @@ export function ProjectFormDialog({
   const [emoji, setEmoji] = useState(initialData?.emoji ?? '📁');
   const [color, setColor] = useState(initialData?.color ?? '#3498db');
   const [showConfirm, setShowConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   function handleClose() {
     onOpenChange(false);
     setShowConfirm(false);
   }
 
-  function handleSave() {
+  function resetForm() {
+    setName('');
+    setEmoji('📁');
+    setColor('#3498db');
+    setShowConfirm(false);
+  }
+
+  async function handleSave() {
     if (!name.trim()) return;
-    onSave({
-      id: mode === 'edit' && initialData ? initialData.id : toKebabCase(name),
+    setSaving(true);
+    await onSave({
+      id: mode === 'edit' && initialData ? initialData.id : crypto.randomUUID(),
       name: name.trim(),
       emoji,
       color,
       order: initialData?.order ?? 0,
     });
+    setSaving(false);
+    if (mode === 'create') resetForm();
     handleClose();
   }
 
-  function handleDelete() {
-    onDelete?.();
+  async function handleDelete() {
+    setDeleting(true);
+    await onDelete?.();
+    setDeleting(false);
     handleClose();
   }
 
-  // Reset state when dialog opens with new data
   function handleOpenChange(next: boolean) {
     if (next) {
       setName(initialData?.name ?? '');
@@ -102,6 +110,7 @@ export function ProjectFormDialog({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowConfirm(false)}
+                disabled={deleting}
               >
                 Cancel
               </Button>
@@ -109,7 +118,9 @@ export function ProjectFormDialog({
                 variant="destructive"
                 size="sm"
                 onClick={handleDelete}
+                disabled={deleting}
               >
+                {deleting ? <Spinner size="sm" className="mr-1.5" /> : null}
                 Delete
               </Button>
             </div>
@@ -199,10 +210,11 @@ export function ProjectFormDialog({
                 </Button>
               )}
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleClose}>
+                <Button variant="outline" size="sm" onClick={handleClose} disabled={saving}>
                   Cancel
                 </Button>
-                <Button size="sm" disabled={!name.trim()} onClick={handleSave}>
+                <Button size="sm" disabled={!name.trim() || saving} onClick={handleSave}>
+                  {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
                   {mode === 'create' ? 'Add project' : 'Save'}
                 </Button>
               </div>

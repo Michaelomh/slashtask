@@ -9,8 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { mockProjects, type Task } from '@/lib/mock-data';
+import { type Project, type Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   CheckCircle2,
@@ -18,12 +19,13 @@ import {
   ChevronUp,
   Circle,
   Flag,
-  MoreHorizontal,
+  Trash2,
   X,
   Zap,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 const PRIORITIES = [
   { value: 1 as const, label: 'P1 — Urgent', color: 'text-red-500' },
@@ -42,19 +44,24 @@ const EFFORTS = [
 interface TaskDetailModalProps {
   task: Task;
   allTasks: Task[];
+  projects: Project[];
 }
 
-export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, allTasks, projects }: TaskDetailModalProps) {
   const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
+  const [title, setTitle] = useState(task.title);
   const [dueDate, setDueDate] = useState<Date | null>(
     task.due_date ? new Date(task.due_date + 'T00:00:00') : null
   );
   const [priority, setPriority] = useState<1 | 2 | 3 | 4>(task.priority);
   const [effort, setEffort] = useState<1 | 2 | 3 | 4>(task.effort);
   const [project, setProject] = useState(
-    mockProjects.find((p) => p.id === task.project_id) ?? null
+    projects.find((p) => p.id === task.project_id) ?? null
   );
+  const [deleting, setDeleting] = useState(false);
+
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const incompleteTasks = allTasks.filter((t) => !t.is_completed);
   const currentIndex = incompleteTasks.findIndex((t) => t.id === task.id);
@@ -66,6 +73,70 @@ export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
 
   function handleClose() {
     router.back();
+  }
+
+  async function patch(body: Record<string, unknown>) {
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      toast.error('Failed to save changes');
+    } else {
+      router.refresh();
+    }
+  }
+
+  function scheduleSave(body: Record<string, unknown>) {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => patch(body), 600);
+  }
+
+  async function handleToggleComplete() {
+    const next = !completed;
+    setCompleted(next);
+    await patch({ is_completed: next });
+  }
+
+  function handleTitleChange(value: string) {
+    setTitle(value);
+    scheduleSave({ title: value });
+  }
+
+  async function handleDueDateChange(date: Date | null) {
+    setDueDate(date);
+    const due_date = date
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      : null;
+    await patch({ due_date });
+  }
+
+  async function handlePriorityChange(value: 1 | 2 | 3 | 4) {
+    setPriority(value);
+    await patch({ priority: value });
+  }
+
+  async function handleEffortChange(value: 1 | 2 | 3 | 4) {
+    setEffort(value);
+    await patch({ effort: value });
+  }
+
+  async function handleProjectChange(p: Project | null) {
+    setProject(p);
+    await patch({ project_id: p?.id ?? null });
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    const res = await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toast.error('Failed to delete task');
+      setDeleting(false);
+      return;
+    }
+    router.back();
+    router.refresh();
   }
 
   const selectedPriority = PRIORITIES.find((p) => p.value === priority)!;
@@ -111,8 +182,18 @@ export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
             >
               <ChevronDown className="size-4" />
             </Button>
-            <Button variant="ghost" size="icon-sm">
-              <MoreHorizontal className="size-4" />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              {deleting ? (
+                <Spinner size="sm" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
             </Button>
             <Button variant="ghost" size="icon-sm" onClick={handleClose}>
               <X className="size-4" />
@@ -126,7 +207,7 @@ export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
           <div className="flex flex-1 flex-col gap-4 px-6 py-5">
             <div className="flex items-start gap-3">
               <button
-                onClick={() => setCompleted((v) => !v)}
+                onClick={handleToggleComplete}
                 className="text-muted-foreground/50 hover:text-primary mt-1 shrink-0 transition-colors"
               >
                 {completed ? (
@@ -135,14 +216,14 @@ export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
                   <Circle className="size-5" />
                 )}
               </button>
-              <h2
+              <input
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 className={cn(
-                  'text-xl leading-tight font-semibold',
+                  'w-full bg-transparent text-xl font-semibold leading-tight focus:outline-none',
                   completed && 'text-muted-foreground line-through'
                 )}
-              >
-                {task.title}
-              </h2>
+              />
             </div>
 
             <Textarea
@@ -178,13 +259,13 @@ export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
                   )}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => setProject(null)}>
+                  <DropdownMenuItem onClick={() => handleProjectChange(null)}>
                     No project
                   </DropdownMenuItem>
-                  {mockProjects.map((p) => (
+                  {projects.map((p) => (
                     <DropdownMenuItem
                       key={p.id}
-                      onClick={() => setProject(p)}
+                      onClick={() => handleProjectChange(p)}
                       className="gap-2"
                     >
                       <span className="font-bold" style={{ color: p.color }}>
@@ -198,7 +279,7 @@ export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
             </MetaRow>
 
             <MetaRow label="Date">
-              <DatePicker value={dueDate} onChange={setDueDate} />
+              <DatePicker value={dueDate} onChange={handleDueDateChange} />
             </MetaRow>
 
             <MetaRow label="Priority">
@@ -216,7 +297,7 @@ export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
                   {PRIORITIES.map((p) => (
                     <DropdownMenuItem
                       key={p.value}
-                      onClick={() => setPriority(p.value)}
+                      onClick={() => handlePriorityChange(p.value)}
                       className="gap-2"
                     >
                       <Flag className={cn('size-3.5', p.color)} />
@@ -237,7 +318,7 @@ export function TaskDetailModal({ task, allTasks }: TaskDetailModalProps) {
                   {EFFORTS.map((e) => (
                     <DropdownMenuItem
                       key={e.value}
-                      onClick={() => setEffort(e.value)}
+                      onClick={() => handleEffortChange(e.value)}
                     >
                       {e.label}
                     </DropdownMenuItem>
