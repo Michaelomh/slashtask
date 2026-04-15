@@ -151,7 +151,10 @@ export function ProjectFormDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-sm">
+        <DialogContent
+          showCloseButton={false}
+          className="gap-0 p-0 sm:max-w-sm"
+        >
           {/* ── Form ── */}
           <div className="flex flex-col gap-5 p-5">
             <h2 className="font-semibold">

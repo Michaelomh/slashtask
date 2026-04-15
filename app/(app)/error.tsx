@@ -9,12 +9,12 @@ export default function Error({
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         {error.message || 'Something went wrong.'}
       </p>
       <button
         onClick={reset}
-        className="text-sm text-primary underline-offset-4 hover:underline"
+        className="text-primary text-sm underline-offset-4 hover:underline"
       >
         Try again
       </button>

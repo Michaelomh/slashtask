@@ -9,11 +9,13 @@ export async function GET(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('project_id');
   const completed = searchParams.get('completed');
+  const parentId = searchParams.get('parent_id');
 
   let query = supabase
     .from('tasks')
@@ -22,6 +24,13 @@ export async function GET(request: Request) {
     .eq('is_deleted', false)
     .order('due_date', { ascending: true })
     .order('order', { ascending: true });
+
+  if (parentId) {
+    query = query.eq('parent_task_id', parentId);
+  } else {
+    // top-level tasks only when not fetching sub-tasks
+    query = query.is('parent_task_id', null);
+  }
 
   if (projectId) {
     query = query.eq('project_id', projectId);
@@ -34,7 +43,8 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
@@ -45,7 +55,8 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
   const {
@@ -79,6 +90,7 @@ export async function POST(request: Request) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }

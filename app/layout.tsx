@@ -20,7 +20,12 @@ export const metadata: Metadata = {
   },
   description:
     'SlashTask is a personal task manager that helps you stay on top of your work, projects, and goals.',
-  keywords: ['task manager', 'productivity', 'to-do list', 'project management'],
+  keywords: [
+    'task manager',
+    'productivity',
+    'to-do list',
+    'project management',
+  ],
   authors: [{ name: 'SlashTask' }],
   creator: 'SlashTask',
   metadataBase: new URL('https://slashtask.app'),

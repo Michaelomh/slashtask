@@ -54,7 +54,7 @@ export function DatePicker({ value, onChange, className }: DatePickerProps) {
                 onChange(null);
               }
             }}
-            className="ml-0.5 rounded hover:text-destructive"
+            className="hover:text-destructive ml-0.5 rounded"
           >
             <X className="size-3" />
           </span>
