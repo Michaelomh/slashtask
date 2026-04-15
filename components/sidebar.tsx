@@ -1,5 +1,6 @@
 'use client';
 
+import { createProject, deleteProject, updateProject } from '@/app/actions/projects';
 import { Badge } from '@/components/ui/badge';
 import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -40,18 +41,13 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
       'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
     >
   ) {
-    const res = await fetch('/api/projects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, order: projects.length + 1 }),
-    });
-    if (!res.ok) {
+    try {
+      const created = await createProject({ ...data, order: projects.length + 1 });
+      setProjects((prev) => [...prev, created]);
+      router.refresh();
+    } catch {
       toast.error('Failed to create project');
-      return;
     }
-    const created: Project = await res.json();
-    setProjects((prev) => [...prev, created]);
-    router.refresh();
   }
 
   async function handleUpdate(
@@ -61,30 +57,25 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
       'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
     >
   ) {
-    const res = await fetch(`/api/projects/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
+    try {
+      const updated = await updateProject(id, data);
+      setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      router.refresh();
+    } catch {
       toast.error('Failed to update project');
-      return;
     }
-    const updated: Project = await res.json();
-    setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
-    router.refresh();
   }
 
   async function handleDelete(id: string, projectSlug: string) {
-    const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
+    try {
+      await deleteProject(id);
+      setProjects((prev) => prev.filter((p) => p.id !== id));
+      router.refresh();
+      if (pathname.includes(`/project/${projectSlug}`)) {
+        router.push('/');
+      }
+    } catch {
       toast.error('Failed to delete project');
-      return;
-    }
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-    router.refresh();
-    if (pathname.includes(`/project/${projectSlug}`)) {
-      router.push('/');
     }
   }
 

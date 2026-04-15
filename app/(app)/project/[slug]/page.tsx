@@ -1,8 +1,29 @@
-import { DateGroup, groupTasksByDate } from '@/components/date-group';
+import { DateGroup } from '@/components/date-group';
+import { groupTasksByDate } from '@/lib/task-grouping';
 import { type Task } from '@/lib/types';
 import { createClient } from '@/utils/supabase/server';
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const { data } = await supabase
+    .from('projects')
+    .select('name, emoji')
+    .eq('slug', slug)
+    .eq('is_deleted', false)
+    .single();
+
+  return { title: data ? `${data.emoji} ${data.name}` : 'Project' };
+}
 
 type RawTask = Task & {
   sub_tasks?: { id: string; is_completed: boolean; is_deleted: boolean }[];

@@ -10,10 +10,34 @@ interface PriorityItem {
 }
 
 const PRIORITY_ITEMS: PriorityItem[] = [
-  { id: '1', value: 1, label: 'High Priority', color: 'text-red-500',            matches: ['1', 'p1', 'high'] },
-  { id: '2', value: 2, label: 'Medium Priority', color: 'text-orange-500',        matches: ['2', 'p2', 'medium'] },
-  { id: '3', value: 3, label: 'Low Priority', color: 'text-blue-500',             matches: ['3', 'p3', 'low'] },
-  { id: '4', value: 4, label: 'No Priority', color: 'text-muted-foreground',      matches: ['4', 'p4', 'no', 'none'] },
+  {
+    id: '1',
+    value: 1,
+    label: 'High Priority',
+    color: 'text-red-500',
+    matches: ['1', 'p1', 'high'],
+  },
+  {
+    id: '2',
+    value: 2,
+    label: 'Medium Priority',
+    color: 'text-orange-500',
+    matches: ['2', 'p2', 'medium'],
+  },
+  {
+    id: '3',
+    value: 3,
+    label: 'Low Priority',
+    color: 'text-blue-500',
+    matches: ['3', 'p3', 'low'],
+  },
+  {
+    id: '4',
+    value: 4,
+    label: 'No Priority',
+    color: 'text-muted-foreground',
+    matches: ['4', 'p4', 'no', 'none'],
+  },
 ];
 
 interface ConfirmResult {
@@ -80,7 +104,10 @@ export function usePriorityShortcut() {
     return { consumed: false };
   }
 
-  function confirmAt(index: number, currentTitle: string): ConfirmResult | null {
+  function confirmAt(
+    index: number,
+    currentTitle: string
+  ): ConfirmResult | null {
     const item = filteredItems[index];
     if (!item) return null;
     const end = triggerStart + 1 + query.length;

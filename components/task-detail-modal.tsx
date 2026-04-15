@@ -102,7 +102,8 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
     }
   }, [token]);
 
-  const effectiveDueDate = lastSource === 'shortcut' && token ? token.date : pickerDate;
+  const effectiveDueDate =
+    lastSource === 'shortcut' && token ? token.date : pickerDate;
 
   useEffect(() => {
     Promise.all([
@@ -161,7 +162,9 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
 
   async function handleTitleBlur() {
     setSavingTask(true);
-    const cleanTitle = token ? removeTriggerToken(title, token.start, token.end) : title;
+    const cleanTitle = token
+      ? removeTriggerToken(title, token.start, token.end)
+      : title;
     if (cleanTitle !== title) setTitle(cleanTitle);
     const updates: Record<string, unknown> = { title: cleanTitle.trim() };
     if (lastSource === 'shortcut' && token) {
@@ -375,7 +378,9 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
                   <TitleInput
                     ref={titleInputRef}
                     value={title}
-                    highlight={token ? { start: token.start, end: token.end } : null}
+                    highlight={
+                      token ? { start: token.start, end: token.end } : null
+                    }
                     onBlur={handleTitleBlur}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -388,20 +393,32 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
                     onKeyDown={(e) => {
                       const projectResult = shortcut.onKeyDown(e, title);
                       if (projectResult.consumed) {
-                        if (projectResult.confirm) { handleTitleChange(projectResult.confirm.newTitle); handleProjectChange(projectResult.confirm.project); }
-                        else if (projectResult.clearedTitle !== undefined) handleTitleChange(projectResult.clearedTitle);
+                        if (projectResult.confirm) {
+                          handleTitleChange(projectResult.confirm.newTitle);
+                          handleProjectChange(projectResult.confirm.project);
+                        } else if (projectResult.clearedTitle !== undefined)
+                          handleTitleChange(projectResult.clearedTitle);
                         return;
                       }
-                      const priorityResult = priorityShortcut.onKeyDown(e, title);
+                      const priorityResult = priorityShortcut.onKeyDown(
+                        e,
+                        title
+                      );
                       if (priorityResult.consumed) {
-                        if (priorityResult.confirm) { handleTitleChange(priorityResult.confirm.newTitle); handlePriorityChange(priorityResult.confirm.value); }
-                        else if (priorityResult.clearedTitle !== undefined) handleTitleChange(priorityResult.clearedTitle);
+                        if (priorityResult.confirm) {
+                          handleTitleChange(priorityResult.confirm.newTitle);
+                          handlePriorityChange(priorityResult.confirm.value);
+                        } else if (priorityResult.clearedTitle !== undefined)
+                          handleTitleChange(priorityResult.clearedTitle);
                         return;
                       }
                       const effortResult = effortShortcut.onKeyDown(e, title);
                       if (effortResult.consumed) {
-                        if (effortResult.confirm) { handleTitleChange(effortResult.confirm.newTitle); handleEffortChange(effortResult.confirm.value); }
-                        else if (effortResult.clearedTitle !== undefined) handleTitleChange(effortResult.clearedTitle);
+                        if (effortResult.confirm) {
+                          handleTitleChange(effortResult.confirm.newTitle);
+                          handleEffortChange(effortResult.confirm.value);
+                        } else if (effortResult.clearedTitle !== undefined)
+                          handleTitleChange(effortResult.clearedTitle);
                         return;
                       }
                     }}
@@ -423,143 +440,162 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
 
                 {/* Toolbar */}
                 <div className="relative">
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {/* Project */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className={TOOLBAR_CLS}>
-                      {project ? (
-                        <>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {/* Project */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className={TOOLBAR_CLS}>
+                        {project ? (
+                          <>
+                            <span
+                              className="font-bold"
+                              style={{ color: project.color }}
+                            >
+                              {project.emoji}
+                            </span>
+                            {project.name}
+                          </>
+                        ) : (
+                          <>
+                            <Inbox className="size-3.5 shrink-0" />
+                            No Project
+                          </>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem
+                          onClick={() => handleProjectChange(null)}
+                          className="gap-2"
+                        >
+                          <Inbox className="size-3.5" />
+                          No Project
+                        </DropdownMenuItem>
+                        {projects.map((p) => (
+                          <DropdownMenuItem
+                            key={p.id}
+                            onClick={() => handleProjectChange(p)}
+                            className="gap-2"
+                            style={{ color: p.color }}
+                          >
+                            <span className="font-bold">{p.emoji}</span>
+                            {p.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <DatePicker
+                      value={effectiveDueDate}
+                      onChange={handleDueDateChange}
+                    />
+
+                    {/* Priority */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        className={cn(
+                          TOOLBAR_CLS,
+                          priority < 4 && selectedPriority.color
+                        )}
+                      >
+                        <Flag className="size-3.5 shrink-0" />
+                        {priority < 4 ? `P${priority}` : 'Priority'}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {PRIORITIES.map((p) => (
+                          <DropdownMenuItem
+                            key={p.value}
+                            onClick={() => handlePriorityChange(p.value)}
+                            className="gap-2"
+                          >
+                            <Flag className={cn('size-3.5', p.color)} />
+                            {p.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Effort */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className={TOOLBAR_CLS}>
+                        <Zap className="size-3.5 shrink-0" />
+                        {selectedEffort.label}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {EFFORTS.map((e) => (
+                          <DropdownMenuItem
+                            key={e.value}
+                            onClick={() => handleEffortChange(e.value)}
+                          >
+                            {e.dropdownValue}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Shortcut dropdowns */}
+                  {shortcut.isOpen && (
+                    <ShortcutDropdown
+                      items={shortcut.filteredProjects.map((p) => ({
+                        id: p.id,
+                        label: p.name,
+                        icon: p.emoji ? (
                           <span
                             className="font-bold"
-                            style={{ color: project.color }}
+                            style={{ color: p.color }}
                           >
-                            {project.emoji}
+                            {p.emoji}
                           </span>
-                          {project.name}
-                        </>
-                      ) : (
-                        <>
+                        ) : (
                           <Inbox className="size-3.5 shrink-0" />
-                          No Project
-                        </>
-                      )}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem
-                        onClick={() => handleProjectChange(null)}
-                        className="gap-2"
-                      >
-                        <Inbox className="size-3.5" />
-                        No Project
-                      </DropdownMenuItem>
-                      {projects.map((p) => (
-                        <DropdownMenuItem
-                          key={p.id}
-                          onClick={() => handleProjectChange(p)}
-                          className="gap-2"
-                          style={{ color: p.color }}
-                        >
-                          <span className="font-bold">{p.emoji}</span>
-                          {p.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <DatePicker value={effectiveDueDate} onChange={handleDueDateChange} />
-
-                  {/* Priority */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      className={cn(
-                        TOOLBAR_CLS,
-                        priority < 4 && selectedPriority.color
-                      )}
-                    >
-                      <Flag className="size-3.5 shrink-0" />
-                      {priority < 4 ? `P${priority}` : 'Priority'}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      {PRIORITIES.map((p) => (
-                        <DropdownMenuItem
-                          key={p.value}
-                          onClick={() => handlePriorityChange(p.value)}
-                          className="gap-2"
-                        >
-                          <Flag className={cn('size-3.5', p.color)} />
-                          {p.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* Effort */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className={TOOLBAR_CLS}>
-                      <Zap className="size-3.5 shrink-0" />
-                      {selectedEffort.label}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      {EFFORTS.map((e) => (
-                        <DropdownMenuItem
-                          key={e.value}
-                          onClick={() => handleEffortChange(e.value)}
-                        >
-                          {e.dropdownValue}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {/* Shortcut dropdowns */}
-                {shortcut.isOpen && (
-                  <ShortcutDropdown
-                    items={shortcut.filteredProjects.map((p) => ({
-                      id: p.id,
-                      label: p.name,
-                      icon: p.emoji
-                        ? <span className="font-bold" style={{ color: p.color }}>{p.emoji}</span>
-                        : <Inbox className="size-3.5 shrink-0" />,
-                    }))}
-                    highlightIndex={shortcut.highlightIndex}
-                    onSelect={(i) => {
-                      const result = shortcut.confirmAt(i, title);
-                      if (result) { handleTitleChange(result.newTitle); handleProjectChange(result.project); }
-                      titleInputRef.current?.focus();
-                    }}
-                  />
-                )}
-                {priorityShortcut.isOpen && (
-                  <ShortcutDropdown
-                    items={priorityShortcut.filteredItems.map((item) => ({
-                      id: item.id,
-                      label: item.label,
-                      icon: <Flag className={cn('size-3.5', item.color)} />,
-                    }))}
-                    highlightIndex={priorityShortcut.highlightIndex}
-                    onSelect={(i) => {
-                      const result = priorityShortcut.confirmAt(i, title);
-                      if (result) { handleTitleChange(result.newTitle); handlePriorityChange(result.value); }
-                      titleInputRef.current?.focus();
-                    }}
-                  />
-                )}
-                {effortShortcut.isOpen && (
-                  <ShortcutDropdown
-                    items={effortShortcut.filteredItems.map((item) => ({
-                      id: item.id,
-                      label: item.label,
-                      icon: <Zap className="size-3.5 shrink-0" />,
-                    }))}
-                    highlightIndex={effortShortcut.highlightIndex}
-                    onSelect={(i) => {
-                      const result = effortShortcut.confirmAt(i, title);
-                      if (result) { handleTitleChange(result.newTitle); handleEffortChange(result.value); }
-                      titleInputRef.current?.focus();
-                    }}
-                  />
-                )}
+                        ),
+                      }))}
+                      highlightIndex={shortcut.highlightIndex}
+                      onSelect={(i) => {
+                        const result = shortcut.confirmAt(i, title);
+                        if (result) {
+                          handleTitleChange(result.newTitle);
+                          handleProjectChange(result.project);
+                        }
+                        titleInputRef.current?.focus();
+                      }}
+                    />
+                  )}
+                  {priorityShortcut.isOpen && (
+                    <ShortcutDropdown
+                      items={priorityShortcut.filteredItems.map((item) => ({
+                        id: item.id,
+                        label: item.label,
+                        icon: <Flag className={cn('size-3.5', item.color)} />,
+                      }))}
+                      highlightIndex={priorityShortcut.highlightIndex}
+                      onSelect={(i) => {
+                        const result = priorityShortcut.confirmAt(i, title);
+                        if (result) {
+                          handleTitleChange(result.newTitle);
+                          handlePriorityChange(result.value);
+                        }
+                        titleInputRef.current?.focus();
+                      }}
+                    />
+                  )}
+                  {effortShortcut.isOpen && (
+                    <ShortcutDropdown
+                      items={effortShortcut.filteredItems.map((item) => ({
+                        id: item.id,
+                        label: item.label,
+                        icon: <Zap className="size-3.5 shrink-0" />,
+                      }))}
+                      highlightIndex={effortShortcut.highlightIndex}
+                      onSelect={(i) => {
+                        const result = effortShortcut.confirmAt(i, title);
+                        if (result) {
+                          handleTitleChange(result.newTitle);
+                          handleEffortChange(result.value);
+                        }
+                        titleInputRef.current?.focus();
+                      }}
+                    />
+                  )}
                 </div>
 
                 {/* ── Sub-tasks section ── */}

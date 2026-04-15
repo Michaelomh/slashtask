@@ -1,5 +1,6 @@
 'use client';
 
+import { createTask } from '@/app/actions/tasks';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +48,9 @@ export function NewTaskModal() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const dateParam = searchParams.get('date');
-  const initialDate = dateParam ? new Date(dateParam + 'T00:00:00') : new Date();
+  const initialDate = dateParam
+    ? new Date(dateParam + 'T00:00:00')
+    : new Date();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -76,7 +79,8 @@ export function NewTaskModal() {
     }
   }, [token]);
 
-  const effectiveDueDate = lastSource === 'shortcut' && token ? token.date : pickerDate;
+  const effectiveDueDate =
+    lastSource === 'shortcut' && token ? token.date : pickerDate;
 
   const defaultDateStr = dateParam ?? TODAY;
   const isDirty =
@@ -86,7 +90,8 @@ export function NewTaskModal() {
     effort !== 2 ||
     project !== null ||
     effectiveDueDate === null ||
-    (effectiveDueDate != null && format(effectiveDueDate, 'yyyy-MM-dd') !== defaultDateStr);
+    (effectiveDueDate != null &&
+      format(effectiveDueDate, 'yyyy-MM-dd') !== defaultDateStr);
 
   const selectedEffort = EFFORTS.find((e) => e.value === effort)!;
 
@@ -118,10 +123,8 @@ export function NewTaskModal() {
       ? removeTriggerToken(title, token.start, token.end)
       : title;
 
-    const res = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      await createTask({
         title: cleanTitle.trim(),
         description: description.trim() || null,
         description_text: descriptionPlain.trim().slice(0, 500) || null,
@@ -129,17 +132,13 @@ export function NewTaskModal() {
         priority,
         effort,
         due_date: effectiveDueDate ? format(effectiveDueDate, 'yyyy-MM-dd') : null,
-      }),
-    });
-
-    if (!res.ok) {
+      });
+      router.back();
+      router.refresh();
+    } catch {
       toast.error('Failed to create task');
       setSaving(false);
-      return;
     }
-
-    router.back();
-    router.refresh();
   }
 
   const selectedPriority = PRIORITIES.find((p) => p.value === priority)!;
@@ -152,7 +151,10 @@ export function NewTaskModal() {
           if (!open) handleRequestClose();
         }}
       >
-        <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-lg">
+        <DialogContent
+          showCloseButton={false}
+          className="gap-0 p-0 sm:max-w-lg"
+        >
           {/* Main input area */}
           <div className="px-4 pt-4 pb-3">
             <TitleInput
@@ -171,20 +173,29 @@ export function NewTaskModal() {
               onKeyDown={(e) => {
                 const projectResult = shortcut.onKeyDown(e, title);
                 if (projectResult.consumed) {
-                  if (projectResult.confirm) { setTitle(projectResult.confirm.newTitle); setProject(projectResult.confirm.project); }
-                  else if (projectResult.clearedTitle !== undefined) setTitle(projectResult.clearedTitle);
+                  if (projectResult.confirm) {
+                    setTitle(projectResult.confirm.newTitle);
+                    setProject(projectResult.confirm.project);
+                  } else if (projectResult.clearedTitle !== undefined)
+                    setTitle(projectResult.clearedTitle);
                   return;
                 }
                 const priorityResult = priorityShortcut.onKeyDown(e, title);
                 if (priorityResult.consumed) {
-                  if (priorityResult.confirm) { setTitle(priorityResult.confirm.newTitle); setPriority(priorityResult.confirm.value); }
-                  else if (priorityResult.clearedTitle !== undefined) setTitle(priorityResult.clearedTitle);
+                  if (priorityResult.confirm) {
+                    setTitle(priorityResult.confirm.newTitle);
+                    setPriority(priorityResult.confirm.value);
+                  } else if (priorityResult.clearedTitle !== undefined)
+                    setTitle(priorityResult.clearedTitle);
                   return;
                 }
                 const effortResult = effortShortcut.onKeyDown(e, title);
                 if (effortResult.consumed) {
-                  if (effortResult.confirm) { setTitle(effortResult.confirm.newTitle); setEffort(effortResult.confirm.value); }
-                  else if (effortResult.clearedTitle !== undefined) setTitle(effortResult.clearedTitle);
+                  if (effortResult.confirm) {
+                    setTitle(effortResult.confirm.newTitle);
+                    setEffort(effortResult.confirm.value);
+                  } else if (effortResult.clearedTitle !== undefined)
+                    setTitle(effortResult.clearedTitle);
                   return;
                 }
                 if (e.key === 'Enter') handleSubmit();
@@ -205,154 +216,170 @@ export function NewTaskModal() {
 
             {/* Toolbar */}
             <div className="relative">
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {/* Project */}
-              <DropdownMenu>
-                <DropdownMenuTrigger className={TOOLBAR_CLS}>
-                  {project ? (
-                    <>
-                      <span
-                        className="font-bold"
-                        style={{ color: project.color }}
-                      >
-                        {project.emoji}
-                      </span>
-                      {project.name}
-                    </>
-                  ) : (
-                    <>
-                      <Inbox className="size-3.5 shrink-0" />
-                      No Project
-                    </>
-                  )}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {loadingProjects ? (
-                    <div>
-                      <Spinner />
-                    </div>
-                  ) : (
-                    <>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {/* Project */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger className={TOOLBAR_CLS}>
+                    {project ? (
+                      <>
+                        <span
+                          className="font-bold"
+                          style={{ color: project.color }}
+                        >
+                          {project.emoji}
+                        </span>
+                        {project.name}
+                      </>
+                    ) : (
+                      <>
+                        <Inbox className="size-3.5 shrink-0" />
+                        No Project
+                      </>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {loadingProjects ? (
+                      <div>
+                        <Spinner />
+                      </div>
+                    ) : (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => setProject(null)}
+                          className="gap-2"
+                        >
+                          <Inbox className="size-3.5" />
+                          No Project
+                        </DropdownMenuItem>
+                        {projects.map((p) => (
+                          <DropdownMenuItem
+                            key={p.id}
+                            onClick={() => setProject(p)}
+                            className="gap-2"
+                            style={{ color: p.color }}
+                          >
+                            <span className="font-bold">{p.emoji}</span>
+                            {p.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DatePicker
+                  value={effectiveDueDate}
+                  onChange={(d) => {
+                    setPickerDate(d);
+                    setLastSource('picker');
+                  }}
+                />
+
+                {/* Priority */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className={cn(
+                      'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
+                      priority < 4 && selectedPriority.color
+                    )}
+                  >
+                    <Flag className="size-3.5 shrink-0" />
+                    <span>{priority < 4 ? `P${priority}` : 'Priority'}</span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {PRIORITIES.map((p) => (
                       <DropdownMenuItem
-                        onClick={() => setProject(null)}
+                        key={p.value}
+                        onClick={() => setPriority(p.value)}
                         className="gap-2"
                       >
-                        <Inbox className="size-3.5" />
-                        No Project
+                        <Flag className={cn('size-3.5', p.color)} />
+                        {p.label}
                       </DropdownMenuItem>
-                      {projects.map((p) => (
-                        <DropdownMenuItem
-                          key={p.id}
-                          onClick={() => setProject(p)}
-                          className="gap-2"
-                          style={{ color: p.color }}
-                        >
-                          <span className="font-bold">{p.emoji}</span>
-                          {p.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-              <DatePicker
-                value={effectiveDueDate}
-                onChange={(d) => { setPickerDate(d); setLastSource('picker'); }}
-              />
+                {/* Effort */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger className={TOOLBAR_CLS}>
+                    <Zap className="size-3.5 shrink-0" />
+                    {selectedEffort.label}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {EFFORTS.map((e) => (
+                      <DropdownMenuItem
+                        key={e.value}
+                        onClick={() => setEffort(e.value)}
+                      >
+                        {e.dropdownValue}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
-              {/* Priority */}
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className={cn(
-                    'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
-                    priority < 4 && selectedPriority.color
-                  )}
-                >
-                  <Flag className="size-3.5 shrink-0" />
-                  <span>{priority < 4 ? `P${priority}` : 'Priority'}</span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {PRIORITIES.map((p) => (
-                    <DropdownMenuItem
-                      key={p.value}
-                      onClick={() => setPriority(p.value)}
-                      className="gap-2"
-                    >
-                      <Flag className={cn('size-3.5', p.color)} />
-                      {p.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Effort */}
-              <DropdownMenu>
-                <DropdownMenuTrigger className={TOOLBAR_CLS}>
-                  <Zap className="size-3.5 shrink-0" />
-                  {selectedEffort.label}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {EFFORTS.map((e) => (
-                    <DropdownMenuItem
-                      key={e.value}
-                      onClick={() => setEffort(e.value)}
-                    >
-                      {e.dropdownValue}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Shortcut dropdowns */}
-            {shortcut.isOpen && (
-              <ShortcutDropdown
-                items={shortcut.filteredProjects.map((p) => ({
-                  id: p.id,
-                  label: p.name,
-                  icon: p.emoji
-                    ? <span className="font-bold" style={{ color: p.color }}>{p.emoji}</span>
-                    : <Inbox className="size-3.5 shrink-0" />,
-                }))}
-                highlightIndex={shortcut.highlightIndex}
-                onSelect={(i) => {
-                  const result = shortcut.confirmAt(i, title);
-                  if (result) { setTitle(result.newTitle); setProject(result.project); }
-                  inputRef.current?.focus();
-                }}
-              />
-            )}
-            {priorityShortcut.isOpen && (
-              <ShortcutDropdown
-                items={priorityShortcut.filteredItems.map((item) => ({
-                  id: item.id,
-                  label: item.label,
-                  icon: <Flag className={cn('size-3.5', item.color)} />,
-                }))}
-                highlightIndex={priorityShortcut.highlightIndex}
-                onSelect={(i) => {
-                  const result = priorityShortcut.confirmAt(i, title);
-                  if (result) { setTitle(result.newTitle); setPriority(result.value); }
-                  inputRef.current?.focus();
-                }}
-              />
-            )}
-            {effortShortcut.isOpen && (
-              <ShortcutDropdown
-                items={effortShortcut.filteredItems.map((item) => ({
-                  id: item.id,
-                  label: item.label,
-                  icon: <Zap className="size-3.5 shrink-0" />,
-                }))}
-                highlightIndex={effortShortcut.highlightIndex}
-                onSelect={(i) => {
-                  const result = effortShortcut.confirmAt(i, title);
-                  if (result) { setTitle(result.newTitle); setEffort(result.value); }
-                  inputRef.current?.focus();
-                }}
-              />
-            )}
+              {/* Shortcut dropdowns */}
+              {shortcut.isOpen && (
+                <ShortcutDropdown
+                  items={shortcut.filteredProjects.map((p) => ({
+                    id: p.id,
+                    label: p.name,
+                    icon: p.emoji ? (
+                      <span className="font-bold" style={{ color: p.color }}>
+                        {p.emoji}
+                      </span>
+                    ) : (
+                      <Inbox className="size-3.5 shrink-0" />
+                    ),
+                  }))}
+                  highlightIndex={shortcut.highlightIndex}
+                  onSelect={(i) => {
+                    const result = shortcut.confirmAt(i, title);
+                    if (result) {
+                      setTitle(result.newTitle);
+                      setProject(result.project);
+                    }
+                    inputRef.current?.focus();
+                  }}
+                />
+              )}
+              {priorityShortcut.isOpen && (
+                <ShortcutDropdown
+                  items={priorityShortcut.filteredItems.map((item) => ({
+                    id: item.id,
+                    label: item.label,
+                    icon: <Flag className={cn('size-3.5', item.color)} />,
+                  }))}
+                  highlightIndex={priorityShortcut.highlightIndex}
+                  onSelect={(i) => {
+                    const result = priorityShortcut.confirmAt(i, title);
+                    if (result) {
+                      setTitle(result.newTitle);
+                      setPriority(result.value);
+                    }
+                    inputRef.current?.focus();
+                  }}
+                />
+              )}
+              {effortShortcut.isOpen && (
+                <ShortcutDropdown
+                  items={effortShortcut.filteredItems.map((item) => ({
+                    id: item.id,
+                    label: item.label,
+                    icon: <Zap className="size-3.5 shrink-0" />,
+                  }))}
+                  highlightIndex={effortShortcut.highlightIndex}
+                  onSelect={(i) => {
+                    const result = effortShortcut.confirmAt(i, title);
+                    if (result) {
+                      setTitle(result.newTitle);
+                      setEffort(result.value);
+                    }
+                    inputRef.current?.focus();
+                  }}
+                />
+              )}
             </div>
           </div>
 
@@ -381,7 +408,10 @@ export function NewTaskModal() {
       </Dialog>
 
       {/* ── Confirm discard ── */}
-      <AlertDialog open={showDiscardConfirm} onOpenChange={setShowDiscardConfirm}>
+      <AlertDialog
+        open={showDiscardConfirm}
+        onOpenChange={setShowDiscardConfirm}
+      >
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Discard changes?</AlertDialogTitle>

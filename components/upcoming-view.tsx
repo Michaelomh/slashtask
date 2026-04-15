@@ -1,5 +1,6 @@
 'use client';
 
+import { reorderTasks } from '@/app/actions/tasks';
 import {
   DndContext,
   DragEndEvent,
@@ -11,7 +12,8 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { buildDateGroups, DateGroup, OverdueGroup } from '@/components/date-group';
+import { DateGroup, OverdueGroup } from '@/components/date-group';
+import { buildDateGroups } from '@/lib/task-grouping';
 import { TaskItem } from '@/components/task-item';
 import { type Project, type Task } from '@/lib/types';
 import { addDays, isBefore, max, parseISO, startOfDay } from 'date-fns';
@@ -26,7 +28,10 @@ interface UpcomingViewProps {
   projects: Project[];
 }
 
-export function UpcomingView({ tasks: initialTasks, projects }: UpcomingViewProps) {
+export function UpcomingView({
+  tasks: initialTasks,
+  projects,
+}: UpcomingViewProps) {
   const [tasks, setTasks] = useState(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const prevTasksRef = useRef<Task[]>(initialTasks);
@@ -38,14 +43,19 @@ export function UpcomingView({ tasks: initialTasks, projects }: UpcomingViewProp
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
   );
 
   const today = startOfDay(new Date());
   const defaultHorizon = addDays(today, MIN_HORIZON_DAYS);
 
   const overdueTasks = tasks
-    .filter((t) => !t.is_completed && t.due_date && isBefore(parseISO(t.due_date), today))
+    .filter(
+      (t) =>
+        !t.is_completed && t.due_date && isBefore(parseISO(t.due_date), today)
+    )
     .sort((a, b) => a.due_date!.localeCompare(b.due_date!));
 
   const latestTaskDate = tasks.reduce<Date>((acc, t) => {
@@ -66,7 +76,9 @@ export function UpcomingView({ tasks: initialTasks, projects }: UpcomingViewProp
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisibleCount((p) => p + DAYS_PER_PAGE); },
+      ([entry]) => {
+        if (entry.isIntersecting) setVisibleCount((p) => p + DAYS_PER_PAGE);
+      },
       { threshold: 0.1 }
     );
     observer.observe(sentinel);
@@ -107,68 +119,56 @@ export function UpcomingView({ tasks: initialTasks, projects }: UpcomingViewProp
 
     // Refuse to drop into overdue
     if (destContainerId === 'overdue') return;
-    // Refuse to drop on a non-date container (shouldn't happen but guard)
-    if (!destContainerId || destContainerId === 'overdue') return;
+    if (!destContainerId) return;
 
-    setTasks((prev) => {
-      const updated = [...prev];
-      const activeIndex = updated.findIndex((t) => t.id === activeId);
-      if (activeIndex === -1) return prev;
+    const updated = [...tasks];
+    const activeIndex = updated.findIndex((t) => t.id === activeId);
+    if (activeIndex === -1) return;
 
-      const movedTask = { ...updated[activeIndex] };
+    const movedTask = { ...updated[activeIndex] };
 
-      // Cross-container: update due_date
-      const dueDateChanged = sourceContainerId !== destContainerId;
-      if (dueDateChanged) {
-        movedTask.due_date = destContainerId;
-      }
+    // Cross-container: update due_date
+    const dueDateChanged = sourceContainerId !== destContainerId;
+    if (dueDateChanged) movedTask.due_date = destContainerId;
 
-      // Remove from old position
-      updated.splice(activeIndex, 1);
+    // Remove from old position
+    updated.splice(activeIndex, 1);
 
-      // Find insertion point in destination group
-      const overIndex = updated.findIndex((t) => t.id === overId);
-      if (overIndex !== -1 && over.data.current?.type === 'task') {
-        updated.splice(overIndex, 0, movedTask);
-      } else {
-        // Dropped on empty container or container edge — add at end of that day
-        const lastInDest = updated.reduce<number>(
-          (last, t, i) => (t.due_date === destContainerId ? i : last),
-          -1
-        );
-        updated.splice(lastInDest + 1, 0, movedTask);
-      }
+    // Find insertion point in destination group
+    const overIndex = updated.findIndex((t) => t.id === overId);
+    if (overIndex !== -1 && over.data.current?.type === 'task') {
+      updated.splice(overIndex, 0, movedTask);
+    } else {
+      // Dropped on empty container or container edge — add at end of that day
+      const lastInDest = updated.reduce<number>(
+        (last, t, i) => (t.due_date === destContainerId ? i : last),
+        -1
+      );
+      updated.splice(lastInDest + 1, 0, movedTask);
+    }
 
-      // Recalculate orders for all affected date groups
-      const affectedDates = new Set([sourceContainerId, destContainerId]);
-      const reorderPayload: { id: string; order: number; due_date?: string }[] = [];
+    // Recalculate orders for all affected date groups
+    const affectedDates = new Set([sourceContainerId, destContainerId]);
+    const reorderPayload: { id: string; order: number; due_date?: string }[] = [];
 
-      for (const date of affectedDates) {
-        const groupTasks = updated.filter((t) => t.due_date === date);
-        groupTasks.forEach((t, i) => {
-          t.order = (i + 1) * 1000;
-          const entry: { id: string; order: number; due_date?: string } = {
-            id: t.id,
-            order: t.order,
-          };
-          if (t.id === activeId && dueDateChanged) entry.due_date = destContainerId;
-          reorderPayload.push(entry);
-        });
-      }
-
-      // Fire API (optimistic — revert on failure)
-      fetch('/api/tasks/reorder', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reorderPayload),
-      }).then((res) => {
-        if (!res.ok) {
-          setTasks(prevTasksRef.current);
-          toast.error('Failed to save order');
-        }
+    for (const date of affectedDates) {
+      const groupTasks = updated.filter((t) => t.due_date === date);
+      groupTasks.forEach((t, i) => {
+        t.order = (i + 1) * 1000;
+        const entry: { id: string; order: number; due_date?: string } = {
+          id: t.id,
+          order: t.order,
+        };
+        if (t.id === activeId && dueDateChanged) entry.due_date = destContainerId;
+        reorderPayload.push(entry);
       });
+    }
 
-      return updated;
+    // Optimistic update — revert on failure
+    setTasks(updated);
+    reorderTasks(reorderPayload).catch(() => {
+      setTasks(prevTasksRef.current);
+      toast.error('Failed to save order');
     });
   }
 
@@ -193,7 +193,7 @@ export function UpcomingView({ tasks: initialTasks, projects }: UpcomingViewProp
       {/* Ghost preview while dragging */}
       <DragOverlay>
         {activeTask && (
-          <div className="shadow-md opacity-95 rounded">
+          <div className="rounded opacity-95 shadow-md">
             <TaskItem task={activeTask} project={activeProject} />
           </div>
         )}

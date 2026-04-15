@@ -9,8 +9,13 @@ interface EffortItem {
 }
 
 const EFFORT_ITEMS: EffortItem[] = [
-  { id: '1', value: 1, label: 'S (Quick)',    matches: ['1', 's', 'small', 'quick'] },
-  { id: '2', value: 2, label: 'M (<1hr)',     matches: ['2', 'm', 'medium'] },
+  {
+    id: '1',
+    value: 1,
+    label: 'S (Quick)',
+    matches: ['1', 's', 'small', 'quick'],
+  },
+  { id: '2', value: 2, label: 'M (<1hr)', matches: ['2', 'm', 'medium'] },
   { id: '3', value: 3, label: 'L (1-3 hrs)', matches: ['3', 'l', 'large'] },
   { id: '4', value: 4, label: 'XL (>3 hrs)', matches: ['4', 'xl', 'huge'] },
 ];
@@ -78,7 +83,10 @@ export function useEffortShortcut() {
     return { consumed: false };
   }
 
-  function confirmAt(index: number, currentTitle: string): ConfirmResult | null {
+  function confirmAt(
+    index: number,
+    currentTitle: string
+  ): ConfirmResult | null {
     const item = filteredItems[index];
     if (!item) return null;
     const end = triggerStart + 1 + query.length;

@@ -18,8 +18,7 @@ const spinnerVariants = cva(
 );
 
 interface SpinnerProps
-  extends React.ComponentProps<'span'>,
-    VariantProps<typeof spinnerVariants> {}
+  extends React.ComponentProps<'span'>, VariantProps<typeof spinnerVariants> {}
 
 function Spinner({ className, size, ...props }: SpinnerProps) {
   return (

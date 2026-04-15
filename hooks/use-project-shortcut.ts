@@ -76,7 +76,10 @@ export function useProjectShortcut(projects: Project[]) {
   }
 
   /** Call when user clicks a dropdown item. */
-  function confirmAt(index: number, currentTitle: string): ConfirmResult | null {
+  function confirmAt(
+    index: number,
+    currentTitle: string
+  ): ConfirmResult | null {
     const project = filteredProjects[index];
     if (!project) return null;
 

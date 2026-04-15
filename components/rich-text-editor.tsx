@@ -32,7 +32,12 @@ interface ToolbarButtonProps {
   title: string;
 }
 
-function ToolbarButton({ onClick, active, children, title }: ToolbarButtonProps) {
+function ToolbarButton({
+  onClick,
+  active,
+  children,
+  title,
+}: ToolbarButtonProps) {
   return (
     <button
       type="button"
@@ -123,7 +128,9 @@ export function RichTextEditor({
         <ToolbarButton
           title="Heading 1"
           active={editor?.isActive('heading', { level: 1 })}
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+          onClick={() =>
+            editor?.chain().focus().toggleHeading({ level: 1 }).run()
+          }
         >
           <Heading1 className="size-3.5" />
         </ToolbarButton>
@@ -131,7 +138,9 @@ export function RichTextEditor({
         <ToolbarButton
           title="Heading 2"
           active={editor?.isActive('heading', { level: 2 })}
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            editor?.chain().focus().toggleHeading({ level: 2 }).run()
+          }
         >
           <Heading2 className="size-3.5" />
         </ToolbarButton>
@@ -139,7 +148,9 @@ export function RichTextEditor({
         <ToolbarButton
           title="Heading 3"
           active={editor?.isActive('heading', { level: 3 })}
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+          onClick={() =>
+            editor?.chain().focus().toggleHeading({ level: 3 }).run()
+          }
         >
           <Heading3 className="size-3.5" />
         </ToolbarButton>

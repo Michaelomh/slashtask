@@ -147,13 +147,38 @@
   font-size: 0.875rem;
   line-height: 1.5;
 }
-.tiptap-content > * + * { margin-top: 0.25rem; }
-.tiptap-content h1 { font-size: 1.375rem; font-weight: 700; line-height: 1.3; margin-top: 0.75rem; }
-.tiptap-content h2 { font-size: 1.15rem;  font-weight: 600; line-height: 1.3; margin-top: 0.75rem; }
-.tiptap-content h3 { font-size: 1rem;     font-weight: 600; line-height: 1.3; margin-top: 0.5rem;  }
-.tiptap-content ul { list-style-type: disc;    padding-left: 1.25rem; }
-.tiptap-content ol { list-style-type: decimal; padding-left: 1.25rem; }
-.tiptap-content li + li { margin-top: 0.125rem; }
+.tiptap-content > * + * {
+  margin-top: 0.25rem;
+}
+.tiptap-content h1 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 0.75rem;
+}
+.tiptap-content h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 0.75rem;
+}
+.tiptap-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 0.5rem;
+}
+.tiptap-content ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+}
+.tiptap-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+}
+.tiptap-content li + li {
+  margin-top: 0.125rem;
+}
 .tiptap-content code {
   font-family: var(--font-mono);
   font-size: 0.8em;

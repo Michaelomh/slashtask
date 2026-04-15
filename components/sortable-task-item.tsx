@@ -16,11 +16,17 @@ export function SortableTaskItem({
   project: Project | null;
   containerId: string;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({
-      id: task.id,
-      data: { type: 'task', containerId },
-    });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    data: { type: 'task', containerId },
+  });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
