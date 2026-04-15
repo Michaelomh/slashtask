@@ -30,4 +30,7 @@ export type Task = {
   user_id: string;
   created_at: string;
   updated_at: string;
+  // computed — populated by server pages via embedded join
+  sub_task_total?: number;
+  sub_task_completed?: number;
 };

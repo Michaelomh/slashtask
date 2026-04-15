@@ -3,7 +3,7 @@
 import { type Project, type Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isPast, startOfDay } from 'date-fns';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, ListTree } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -114,6 +114,12 @@ export function TaskItem({ task, project }: TaskItemProps) {
         {task.description_text && (
           <span className="text-muted-foreground truncate text-xs">
             {task.description_text}
+          </span>
+        )}
+        {(task.sub_task_total ?? 0) > 0 && (
+          <span className="text-muted-foreground flex items-center gap-1 text-xs">
+            <ListTree className="size-3 shrink-0" />
+            {task.sub_task_completed}/{task.sub_task_total}
           </span>
         )}
       </div>
