@@ -30,10 +30,29 @@ export function TaskItem({ task, project }: TaskItemProps) {
     isPast(startOfDay(new Date(task.due_date + 'T00:00:00'))) &&
     !completed;
 
+  function fireConfetti() {
+    import('canvas-confetti').then((mod) => {
+      const confetti = mod.default as (opts: Record<string, unknown>) => void;
+      const shared = {
+        particleCount: 80,
+        spread: 55,
+        startVelocity: 55,
+        decay: 0.92,
+        ticks: 200,
+        origin: { y: 0.6 },
+        disableForReducedMotion: true,
+      };
+      confetti({ ...shared, angle: 60,  origin: { x: 0,   y: 0.6 } });
+      confetti({ ...shared, angle: 120, origin: { x: 1,   y: 0.6 } });
+    });
+  }
+
   async function handleToggle(e: React.MouseEvent) {
     e.preventDefault();
     const next = !completed;
     setCompleted(next);
+
+    if (next) fireConfetti();
 
     const res = await fetch(`/api/tasks/${task.id}`, {
       method: 'PATCH',
@@ -54,7 +73,7 @@ export function TaskItem({ task, project }: TaskItemProps) {
     <Link
       href={`/task/${task.id}`}
       className={cn(
-        'group border-border/50 hover:bg-muted/30 flex items-start gap-3 border-b border-l-2 py-3 pr-4 pl-3 transition-colors',
+        'group border-border/50 hover:bg-muted/30 flex items-start gap-3 border-b border-l-2 py-3 pr-4 pl-3 transition-all',
         priorityBorder[task.priority]
       )}
     >
@@ -76,14 +95,21 @@ export function TaskItem({ task, project }: TaskItemProps) {
 
       {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        {/* Title with animated strike-through line */}
         <span
           className={cn(
-            'truncate text-sm',
+            'relative w-fit max-w-full truncate text-sm transition-colors',
             isOverdue ? 'text-destructive' : 'text-foreground',
-            completed && 'text-muted-foreground line-through'
+            completed && 'text-muted-foreground'
           )}
         >
           {task.title}
+          <span
+            className={cn(
+              'absolute top-1/2 left-0 h-px w-full origin-left bg-current transition-transform duration-300',
+              completed ? 'scale-x-100' : 'scale-x-0'
+            )}
+          />
         </span>
         {task.description_text && (
           <span className="text-muted-foreground truncate text-xs">
