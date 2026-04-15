@@ -19,8 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import { EFFORTS, PRIORITIES } from '@/lib/enums';
 import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,7 @@ export function NewTaskModal() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [descriptionPlain, setDescriptionPlain] = useState('');
   const [dueDate, setDueDate] = useState<Date | null>(new Date());
   const [priority, setPriority] = useState<number>(4);
   const [effort, setEffort] = useState<number>(2);
@@ -88,7 +89,8 @@ export function NewTaskModal() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: title.trim(),
-        description_text: description.trim() || null,
+        description: description.trim() || null,
+        description_text: descriptionPlain.trim().slice(0, 500) || null,
         project_id: project?.id ?? null,
         priority,
         effort: 2,
@@ -130,12 +132,14 @@ export function NewTaskModal() {
               placeholder="Task name"
               className="placeholder:text-muted-foreground/50 w-full bg-transparent text-lg font-medium focus:outline-none"
             />
-            <Textarea
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(md, plain) => {
+                setDescription(md);
+                setDescriptionPlain(plain);
+              }}
               placeholder="Description"
-              rows={2}
-              className="placeholder:text-muted-foreground/40 mt-1.5 resize-none border-none bg-transparent text-sm shadow-none focus-visible:ring-0"
+              className="mt-1.5"
             />
 
             {/* Toolbar */}

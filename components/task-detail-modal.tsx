@@ -19,9 +19,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import { EFFORTS, PRIORITIES } from '@/lib/enums';
 import { type Project, type Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -72,6 +72,8 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
   const [subTasksOpen, setSubTasksOpen] = useState(true);
   const [addingSubTask, setAddingSubTask] = useState(false);
   const [newSubTitle, setNewSubTitle] = useState('');
+  const [newSubDescription, setNewSubDescription] = useState('');
+  const [newSubDescriptionPlain, setNewSubDescriptionPlain] = useState('');
   const [newSubDueDate, setNewSubDueDate] = useState<Date | null>(null);
   const [newSubPriority, setNewSubPriority] = useState<number>(4);
   const [savingSubTask, setSavingSubTask] = useState(false);
@@ -141,14 +143,14 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
     }, 500);
   }
 
-  function handleDescriptionChange(value: string) {
-    setDescription(value);
+  function handleDescriptionChange(markdown: string, plainText: string) {
+    setDescription(markdown);
     if (descDebounce.current) clearTimeout(descDebounce.current);
     descDebounce.current = setTimeout(async () => {
       setSavingTask(true);
       await patch({
-        description: value,
-        description_text: value.slice(0, 500),
+        description: markdown,
+        description_text: plainText.slice(0, 500),
       });
       setSavingTask(false);
     }, 500);
@@ -255,6 +257,8 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
         parent_task_id: id,
         priority: newSubPriority,
         due_date: newSubDueDate ? format(newSubDueDate, 'yyyy-MM-dd') : null,
+        description: newSubDescription.trim() || null,
+        description_text: newSubDescriptionPlain.trim().slice(0, 500) || null,
       }),
     });
     if (!res.ok) {
@@ -265,6 +269,8 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
     const created: Task = await res.json();
     setSubTasks((prev) => [...prev, created]);
     setNewSubTitle('');
+    setNewSubDescription('');
+    setNewSubDescriptionPlain('');
     setNewSubDueDate(null);
     setNewSubPriority(4);
     setAddingSubTask(false);
@@ -275,6 +281,8 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
   function handleCancelAddSubTask() {
     setAddingSubTask(false);
     setNewSubTitle('');
+    setNewSubDescription('');
+    setNewSubDescriptionPlain('');
     setNewSubDueDate(null);
     setNewSubPriority(4);
   }
@@ -341,12 +349,11 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
                 </div>
 
                 {/* Description */}
-                <Textarea
-                  placeholder="Description"
+                <RichTextEditor
                   value={description}
-                  onChange={(e) => handleDescriptionChange(e.target.value)}
-                  rows={3}
-                  className="placeholder:text-muted-foreground/40 mt-1.5 resize-none border-none bg-transparent text-sm shadow-none focus-visible:ring-0"
+                  onChange={handleDescriptionChange}
+                  placeholder="Description"
+                  className="mt-1.5"
                 />
 
                 {/* Toolbar */}
@@ -521,6 +528,15 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
                                 }}
                                 placeholder="Task name"
                                 className="placeholder:text-muted-foreground/50 w-full bg-transparent text-sm font-medium focus:outline-none"
+                              />
+                              <RichTextEditor
+                                value={newSubDescription}
+                                onChange={(md, plain) => {
+                                  setNewSubDescription(md);
+                                  setNewSubDescriptionPlain(plain);
+                                }}
+                                placeholder="Description"
+                                className="mt-1"
                               />
                               <div className="mt-2 flex flex-wrap items-center gap-2">
                                 <DatePicker
