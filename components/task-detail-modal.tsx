@@ -15,17 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EFFORTS, PRIORITIES } from '@/lib/enums';
 import { type Project, type Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import {
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Circle,
-  Flag,
-  Inbox,
-  Trash2,
-  X,
-  Zap,
-} from 'lucide-react';
+import { CheckCircle2, Circle, Flag, Inbox, Trash2, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -42,7 +32,6 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
 
   const [loading, setLoading] = useState(true);
   const [task, setTask] = useState<Task | null>(null);
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
   // Derived editable state (populated once task loads)
@@ -53,6 +42,7 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
   const [effort, setEffort] = useState<number>(2);
   const [project, setProject] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [isSavingTask, setSavingTask] = useState(false);
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -64,7 +54,7 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
     ])
       .then(([taskData, tasksData, projectsData]) => {
         setTask(taskData);
-        setAllTasks(tasksData);
+        // setAllTasks(tasksData);
         setProjects(projectsData);
         setCompleted(taskData.is_completed);
         setTitle(taskData.title);
@@ -99,43 +89,43 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
     }
   }
 
-  function scheduleSave(body: Record<string, unknown>) {
-    if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => patch(body), 600);
-  }
-
-  async function handleToggleComplete() {
-    const next = !completed;
-    setCompleted(next);
-    await patch({ is_completed: next });
-  }
-
-  function handleTitleChange(value: string) {
+  // TODO: add a debounce (0.5sec)
+  async function handleTitleChange(value: string) {
     setTitle(value);
-    scheduleSave({ title: value });
+    setSavingTask(true);
+    await patch({ title: value });
+    setSavingTask(false);
   }
 
   async function handleDueDateChange(date: Date | null) {
     setDueDate(date);
+    setSavingTask(true);
     const due_date = date
       ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
       : null;
     await patch({ due_date });
+    setSavingTask(false);
   }
 
   async function handlePriorityChange(value: number) {
     setPriority(value);
+    setSavingTask(true);
     await patch({ priority: value });
+    setSavingTask(false);
   }
 
   async function handleEffortChange(value: number) {
     setEffort(value);
+    setSavingTask(true);
     await patch({ effort: value });
+    setSavingTask(false);
   }
 
   async function handleProjectChange(p: Project | null) {
     setProject(p);
+    setSavingTask(true);
     await patch({ project_id: p?.id ?? null });
+    setSavingTask(false);
   }
 
   async function handleDelete() {
@@ -150,14 +140,6 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
     router.refresh();
   }
 
-  const incompleteTasks = allTasks.filter((t) => !t.is_completed);
-  const currentIndex = incompleteTasks.findIndex((t) => t.id === id);
-  const prevTask = currentIndex > 0 ? incompleteTasks[currentIndex - 1] : null;
-  const nextTask =
-    currentIndex < incompleteTasks.length - 1
-      ? incompleteTasks[currentIndex + 1]
-      : null;
-
   const selectedPriority = PRIORITIES.find((p) => p.value === priority)!;
   const selectedEffort = EFFORTS.find((e) => e.value === effort)!;
 
@@ -169,35 +151,9 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
       }}
     >
       <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-lg">
-        {/* Header */}
-        <div className="border-border flex items-center justify-between border-b px-3 py-2">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              disabled={loading || !prevTask}
-              onClick={() => prevTask && router.replace(`/task/${prevTask.id}`)}
-            >
-              <ChevronUp className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              disabled={loading || !nextTask}
-              onClick={() => nextTask && router.replace(`/task/${nextTask.id}`)}
-            >
-              <ChevronDown className="size-4" />
-            </Button>
-          </div>
-          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-            <X className="size-4" />
-          </Button>
-        </div>
-
         {/* Body */}
         <div className="px-4 pt-4 pb-3">
           {loading ? (
-            /* ── Skeleton state ── */
             <>
               <div className="mb-4 flex items-start gap-3">
                 <Skeleton className="mt-0.5 size-5 shrink-0 rounded-full" />
@@ -214,20 +170,14 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
               </div>
             </>
           ) : (
-            /* ── Loaded state ── */
             <>
               {/* Title row */}
               <div className="flex items-start gap-3">
-                <button
-                  onClick={handleToggleComplete}
-                  className="text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors"
-                >
-                  {completed ? (
-                    <CheckCircle2 className="text-primary size-5" />
-                  ) : (
-                    <Circle className="size-5" />
-                  )}
-                </button>
+                {completed ? (
+                  <CheckCircle2 className="text-primary size-5" />
+                ) : (
+                  <Circle className="size-5" />
+                )}
                 <input
                   value={title}
                   onChange={(e) => handleTitleChange(e.target.value)}
@@ -341,7 +291,7 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="border-border flex items-center border-t px-4 py-3">
+        <div className="border-border flex items-center justify-between border-t px-4 py-3">
           <Button
             variant="ghost"
             size="sm"
@@ -352,6 +302,12 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
             {deleting ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
             Delete task
           </Button>
+          {isSavingTask && (
+            <div className="flex items-center gap-2">
+              <p className="text-sidebar-foreground/50">Saving Task</p>
+              <Spinner className="text-sidebar-foreground/50 size-3" />
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

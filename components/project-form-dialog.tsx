@@ -1,11 +1,22 @@
 'use client';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 const EMOJI_OPTIONS = [
@@ -91,20 +102,18 @@ export function ProjectFormDialog({
   const [name, setName] = useState(initialData?.name ?? '');
   const [emoji, setEmoji] = useState(initialData?.emoji ?? '📁');
   const [color, setColor] = useState(initialData?.color ?? '#3498db');
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   function handleClose() {
     onOpenChange(false);
-    setShowConfirm(false);
   }
 
   function resetForm() {
     setName('');
     setEmoji('📁');
     setColor('#3498db');
-    setShowConfirm(false);
   }
 
   async function handleSave() {
@@ -126,6 +135,7 @@ export function ProjectFormDialog({
     setDeleting(true);
     await onDelete?.();
     setDeleting(false);
+    setShowDeleteConfirm(false);
     handleClose();
   }
 
@@ -134,153 +144,149 @@ export function ProjectFormDialog({
       setName(initialData?.name ?? '');
       setEmoji(initialData?.emoji ?? '📁');
       setColor(initialData?.color ?? '#3498db');
-      setShowConfirm(false);
     }
     onOpenChange(next);
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-sm">
-        {showConfirm ? (
-          /* ── Confirm delete ── */
-          <div className="flex flex-col gap-4 p-6">
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-sm">
+          {/* ── Form ── */}
+          <div className="flex flex-col gap-5 p-5">
+            <h2 className="font-semibold">
+              {mode === 'create' ? 'Add project' : 'Edit project'}
+            </h2>
+
+            {/* Name */}
             <div className="flex flex-col gap-1.5">
-              <h2 className="font-semibold">
-                Delete &ldquo;{initialData?.name}&rdquo;?
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                All tasks under this project will be permanently deleted. This
-                cannot be undone.
-              </p>
+              <label className="text-muted-foreground text-xs font-medium">
+                Name
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{emoji}</span>
+                <Input
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                  placeholder="Project name"
+                  className="flex-1"
+                />
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
+
+            {/* Emoji */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-muted-foreground text-xs font-medium">
+                Emoji
+              </label>
+              <div className="grid grid-cols-8 gap-1">
+                {EMOJI_OPTIONS.map((e) => (
+                  <button
+                    key={e}
+                    onClick={() => setEmoji(e)}
+                    className={cn(
+                      'hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md text-base transition-colors',
+                      emoji === e && 'bg-accent ring-ring ring-2'
+                    )}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Color */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-muted-foreground text-xs font-medium">
+                Color
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {COLOR_OPTIONS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setColor(c)}
+                    className={cn(
+                      'h-6 w-6 rounded-full transition-transform hover:scale-110',
+                      color === c &&
+                        'ring-ring ring-offset-background ring-2 ring-offset-2'
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div
+            className={cn(
+              'border-border flex items-center border-t px-5 py-3',
+              mode === 'edit' ? 'justify-between' : 'justify-end'
+            )}
+          >
+            {mode === 'edit' && (
+              <Button
+                variant="ghost"
+                className="text-muted-foreground hover:text-destructive gap-1.5"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash2 className="size-3.5" />
+                Delete project
+              </Button>
+            )}
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowConfirm(false)}
-                disabled={deleting}
+                onClick={handleClose}
+                disabled={saving}
               >
                 Cancel
               </Button>
               <Button
-                variant="destructive"
                 size="sm"
-                onClick={handleDelete}
-                disabled={deleting}
+                disabled={!name.trim() || saving}
+                onClick={handleSave}
               >
-                {deleting ? <Spinner size="sm" className="mr-1.5" /> : null}
-                Delete
+                {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
+                {mode === 'create' ? 'Add project' : 'Save'}
               </Button>
             </div>
           </div>
-        ) : (
-          /* ── Form ── */
-          <>
-            <div className="flex flex-col gap-5 p-5">
-              <h2 className="font-semibold">
-                {mode === 'create' ? 'Add project' : 'Edit project'}
-              </h2>
+        </DialogContent>
+      </Dialog>
 
-              {/* Name */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-muted-foreground text-xs font-medium">
-                  Name
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{emoji}</span>
-                  <Input
-                    autoFocus
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                    placeholder="Project name"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-
-              {/* Emoji */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-muted-foreground text-xs font-medium">
-                  Emoji
-                </label>
-                <div className="grid grid-cols-8 gap-1">
-                  {EMOJI_OPTIONS.map((e) => (
-                    <button
-                      key={e}
-                      onClick={() => setEmoji(e)}
-                      className={cn(
-                        'hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md text-base transition-colors',
-                        emoji === e && 'bg-accent ring-ring ring-2'
-                      )}
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Color */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-muted-foreground text-xs font-medium">
-                  Color
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {COLOR_OPTIONS.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setColor(c)}
-                      className={cn(
-                        'h-6 w-6 rounded-full transition-transform hover:scale-110',
-                        color === c &&
-                          'ring-ring ring-offset-background ring-2 ring-offset-2'
-                      )}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div
-              className={cn(
-                'border-border flex items-center border-t px-5 py-3',
-                mode === 'edit' ? 'justify-between' : 'justify-end'
-              )}
+      {/* ── Confirm delete ── */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete &ldquo;{initialData?.name}&rdquo;?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              All tasks under this project will be permanently deleted. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel size="sm" disabled={deleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleting}
             >
-              {mode === 'edit' && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setShowConfirm(true)}
-                >
-                  Delete project
-                </Button>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClose}
-                  disabled={saving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={!name.trim() || saving}
-                  onClick={handleSave}
-                >
-                  {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
-                  {mode === 'create' ? 'Add project' : 'Save'}
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+              {deleting ? <Spinner size="sm" className="mr-1.5" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
