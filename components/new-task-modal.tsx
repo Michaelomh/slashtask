@@ -26,7 +26,7 @@ import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Flag, Inbox, Zap } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -37,10 +37,15 @@ const TODAY = format(new Date(), 'yyyy-MM-dd');
 
 export function NewTaskModal() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const dateParam = searchParams.get('date');
+  const initialDate = dateParam ? new Date(dateParam + 'T00:00:00') : new Date();
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [descriptionPlain, setDescriptionPlain] = useState('');
-  const [dueDate, setDueDate] = useState<Date | null>(new Date());
+  const [dueDate, setDueDate] = useState<Date | null>(initialDate);
   const [priority, setPriority] = useState<number>(4);
   const [effort, setEffort] = useState<number>(2);
   const [project, setProject] = useState<Project | null>(null);
@@ -49,6 +54,7 @@ export function NewTaskModal() {
   const [saving, setSaving] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
+  const defaultDateStr = dateParam ?? TODAY;
   const isDirty =
     title.trim() !== '' ||
     description.trim() !== '' ||
@@ -56,7 +62,7 @@ export function NewTaskModal() {
     effort !== 2 ||
     project !== null ||
     dueDate === null ||
-    (dueDate != null && format(dueDate, 'yyyy-MM-dd') !== TODAY);
+    (dueDate != null && format(dueDate, 'yyyy-MM-dd') !== defaultDateStr);
 
   const selectedEffort = EFFORTS.find((e) => e.value === effort)!;
 

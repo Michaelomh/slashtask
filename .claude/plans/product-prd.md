@@ -306,16 +306,14 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 
 ### Phase 4 — Task CRUD
 
-- [ ] Quick-add input bar (always visible at top of main content)
-- [ ] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
-- [ ] Drag-to-reorder tasks within any view; persist updated `order` to DB
 - [ ] Checkbox to mark task complete (with animation)
 - [ ] Task detail panel (slides in from right)
-- [ ] Edit title, description (markdown with toggle preview), project, due date, priority, effort
-- [ ] Delete task: cascade-delete sub-tasks; show confirmation dialog if sub-tasks exist`
 - [ ] Sub-tasks: add, complete, delete within detail panel (one level deep only — no nested sub-tasks)
+- [ ] Delete task: cascade-delete sub-tasks; show confirmation dialog if sub-tasks exist`
+- [ ] Edit title, description (markdown with toggle preview), project, due date, priority, effort
+- [ ] Drag-to-reorder tasks within any view; persist updated `order` to DB
+- [ ] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
 - [ ] Recurring tasks: on completion, mark original complete and insert new task row with next due date from `rrule`
-- [ ] Completed view: list of completed tasks, filterable by date range
 
 ### Phase X - Clean up.
 
