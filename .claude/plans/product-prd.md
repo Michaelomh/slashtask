@@ -298,9 +298,9 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 
 ### Phase 3 — Projects
 
-- [ ] Create project (id, name, emoji, color)
-- [ ] Update project (name, emoji, color)
-- [ ] Delete project.
+- [x] Create project (id, name, emoji, color)
+- [x] Update project (name, emoji, color)
+- [x] Delete project.
 - [x] Projects appear in sidebar
 - [x] Project view: clicking a project shows its tasks in main content
 

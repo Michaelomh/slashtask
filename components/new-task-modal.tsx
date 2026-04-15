@@ -1,5 +1,15 @@
 'use client';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { DatePicker } from '@/components/date-picker';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -9,151 +19,269 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { mockProjects, type Project } from '@/lib/mock-data';
+import { EFFORTS, PRIORITIES } from '@/lib/enums';
+import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ChevronDown, Flag, Inbox } from 'lucide-react';
+import { format } from 'date-fns';
+import { Flag, Inbox, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-const PRIORITIES = [
-  { value: 1 as const, label: 'Priority 1', color: 'text-red-500' },
-  { value: 2 as const, label: 'Priority 2', color: 'text-orange-500' },
-  { value: 3 as const, label: 'Priority 3', color: 'text-blue-500' },
-  { value: 4 as const, label: 'Priority 4', color: 'text-muted-foreground' },
-];
+const TOOLBAR_CLS =
+  'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors';
+
+const TODAY = format(new Date(), 'yyyy-MM-dd');
 
 export function NewTaskModal() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState<Date | null>(null);
-  const [priority, setPriority] = useState<1 | 2 | 3 | 4>(4);
+  const [dueDate, setDueDate] = useState<Date | null>(new Date());
+  const [priority, setPriority] = useState<number>(4);
+  const [effort, setEffort] = useState<number>(2);
   const [project, setProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+  const isDirty =
+    title.trim() !== '' ||
+    description.trim() !== '' ||
+    priority !== 4 ||
+    effort !== 2 ||
+    project !== null ||
+    dueDate === null ||
+    (dueDate != null && format(dueDate, 'yyyy-MM-dd') !== TODAY);
+
+  const selectedEffort = EFFORTS.find((e) => e.value === effort)!;
+
+  useEffect(() => {
+    fetch('/api/projects')
+      .then((r) => r.json())
+      .then((data) => setProjects(data))
+      .catch(() => toast.error('Failed to load projects'))
+      .finally(() => setLoadingProjects(false));
+  }, []);
 
   function handleClose() {
     router.back();
   }
 
-  function handleSubmit() {
-    if (!title.trim()) return;
-    // Wire to DB later
-    handleClose();
+  function handleRequestClose() {
+    if (isDirty) {
+      setShowDiscardConfirm(true);
+    } else {
+      handleClose();
+    }
+  }
+
+  async function handleSubmit() {
+    if (!title.trim() || saving) return;
+    setSaving(true);
+
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title.trim(),
+        description_text: description.trim() || null,
+        project_id: project?.id ?? null,
+        priority,
+        effort: 2,
+        due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
+      }),
+    });
+
+    if (!res.ok) {
+      toast.error('Failed to create task');
+      setSaving(false);
+      return;
+    }
+
+    router.back();
+    router.refresh();
   }
 
   const selectedPriority = PRIORITIES.find((p) => p.value === priority)!;
 
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) handleClose();
-      }}
-    >
-      <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-lg">
-        {/* Main input area */}
-        <div className="px-4 pt-4 pb-3">
-          <input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSubmit();
-              if (e.key === 'Escape') handleClose();
-            }}
-            placeholder="Task name"
-            className="placeholder:text-muted-foreground/50 w-full bg-transparent text-lg font-medium focus:outline-none"
-          />
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description"
-            rows={2}
-            className="placeholder:text-muted-foreground/40 mt-1.5 resize-none border-none bg-transparent text-sm shadow-none focus-visible:ring-0"
-          />
+    <>
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) handleRequestClose();
+        }}
+      >
+        <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-lg">
+          {/* Main input area */}
+          <div className="px-4 pt-4 pb-3">
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSubmit();
+                if (e.key === 'Escape') handleRequestClose();
+              }}
+              placeholder="Task name"
+              className="placeholder:text-muted-foreground/50 w-full bg-transparent text-lg font-medium focus:outline-none"
+            />
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description"
+              rows={2}
+              className="placeholder:text-muted-foreground/40 mt-1.5 resize-none border-none bg-transparent text-sm shadow-none focus-visible:ring-0"
+            />
 
-          {/* Toolbar */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <DatePicker value={dueDate} onChange={setDueDate} />
+            {/* Toolbar */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {/* Project */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className={TOOLBAR_CLS}>
+                  {project ? (
+                    <>
+                      <span
+                        className="font-bold"
+                        style={{ color: project.color }}
+                      >
+                        {project.emoji}
+                      </span>
+                      {project.name}
+                    </>
+                  ) : (
+                    <>
+                      <Inbox className="size-3.5 shrink-0" />
+                      No Project
+                    </>
+                  )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {loadingProjects ? (
+                    <div>
+                      <Spinner />
+                    </div>
+                  ) : (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => setProject(null)}
+                        className="gap-2"
+                      >
+                        <Inbox className="size-3.5" />
+                        No Project
+                      </DropdownMenuItem>
+                      {projects.map((p) => (
+                        <DropdownMenuItem
+                          key={p.id}
+                          onClick={() => setProject(p)}
+                          className="gap-2"
+                          style={{ color: p.color }}
+                        >
+                          <span className="font-bold">{p.emoji}</span>
+                          {p.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-            {/* Priority */}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
-                  priority < 4 && selectedPriority.color
-                )}
-              >
-                <Flag className="size-3.5 shrink-0" />
-                <span>{priority < 4 ? `P${priority}` : 'Priority'}</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {PRIORITIES.map((p) => (
-                  <DropdownMenuItem
-                    key={p.value}
-                    onClick={() => setPriority(p.value)}
-                    className="gap-2"
-                  >
-                    <Flag className={cn('size-3.5', p.color)} />
-                    {p.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+              <DatePicker value={dueDate} onChange={setDueDate} />
 
-        {/* Footer */}
-        <div className="border-border flex items-center justify-between border-t px-4 py-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm">
-              {project ? (
-                <>
-                  <span className="font-bold" style={{ color: project.color }}>
-                    #
-                  </span>
-                  {project.name}
-                </>
-              ) : (
-                <>
-                  <Inbox className="size-3.5 shrink-0" />
-                  No Project
-                </>
-              )}
-              <ChevronDown className="size-3 opacity-60" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem
-                onClick={() => setProject(null)}
-                className="gap-2"
-              >
-                <Inbox className="size-3.5" />
-                No Project
-              </DropdownMenuItem>
-              {mockProjects.map((p) => (
-                <DropdownMenuItem
-                  key={p.id}
-                  onClick={() => setProject(p)}
-                  className="gap-2"
-                  style={{ color: p.color }}
+              {/* Priority */}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className={cn(
+                    'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
+                    priority < 4 && selectedPriority.color
+                  )}
                 >
-                  <span className="font-bold">{p.emoji}</span>
-                  {p.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <Flag className="size-3.5 shrink-0" />
+                  <span>{priority < 4 ? `P${priority}` : 'Priority'}</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {PRIORITIES.map((p) => (
+                    <DropdownMenuItem
+                      key={p.value}
+                      onClick={() => setPriority(p.value)}
+                      className="gap-2"
+                    >
+                      <Flag className={cn('size-3.5', p.color)} />
+                      {p.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button size="sm" disabled={!title.trim()} onClick={handleSubmit}>
-              Add task
-            </Button>
+              {/* Effort */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className={TOOLBAR_CLS}>
+                  <Zap className="size-3.5 shrink-0" />
+                  {selectedEffort.label}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {EFFORTS.map((e) => (
+                    <DropdownMenuItem
+                      key={e.value}
+                      onClick={() => setEffort(e.value)}
+                    >
+                      {e.dropdownValue}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+
+          {/* Footer */}
+          <div className="border-border flex items-center justify-end border-t px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRequestClose}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!title.trim() || saving}
+                onClick={handleSubmit}
+              >
+                {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
+                Add task
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Confirm discard ── */}
+      <AlertDialog open={showDiscardConfirm} onOpenChange={setShowDiscardConfirm}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to discard them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel size="sm">Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              size="sm"
+              onClick={handleClose}
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

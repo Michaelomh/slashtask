@@ -1,57 +1,39 @@
-'use client';
+import { UpcomingView } from '@/components/upcoming-view';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
-import { DateGroup, groupTasksByDate } from '@/components/date-group';
-import { mockProjects, mockTasks } from '@/lib/mock-data';
-import { useEffect, useRef, useState } from 'react';
+export default async function UpcomingPage() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
-const DAYS_PER_PAGE = 7;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function UpcomingPage() {
-  const allGroups = groupTasksByDate(mockTasks);
-  const [visibleCount, setVisibleCount] = useState(DAYS_PER_PAGE);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const hasMore = visibleCount < allGroups.length;
+  const [tasksResult, projectsResult] = await Promise.all([
+    supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user!.id)
+      .eq('is_deleted', false)
+      .eq('is_completed', false)
+      .order('due_date', { ascending: true })
+      .order('order', { ascending: true }),
+    supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', user!.id)
+      .eq('is_deleted', false)
+      .order('order', { ascending: true }),
+  ]);
 
-  useEffect(() => {
-    if (!hasMore) return;
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisibleCount((prev) => prev + DAYS_PER_PAGE);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore]);
-
-  const visibleGroups = allGroups.slice(0, visibleCount);
+  const tasks = tasksResult.data ?? [];
+  const projects = projectsResult.data ?? [];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-[800px] px-4 py-8">
       <h1 className="mb-6 text-xl font-semibold">Upcoming</h1>
-
-      {allGroups.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No upcoming tasks.</p>
-      ) : (
-        <>
-          {visibleGroups.map((group) => (
-            <DateGroup
-              key={group.date}
-              group={group}
-              projects={mockProjects}
-            />
-          ))}
-          {hasMore && (
-            <div ref={sentinelRef} className="h-8" aria-hidden="true" />
-          )}
-        </>
-      )}
+      <UpcomingView tasks={tasks} projects={projects} />
     </div>
   );
 }

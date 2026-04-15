@@ -1,4 +1,4 @@
-import { type Task, type Project } from '@/lib/mock-data';
+import { type Task, type Project } from '@/lib/types';
 import { format, isToday, isTomorrow, isPast, startOfDay } from 'date-fns';
 import { TaskItem } from './task-item';
 
@@ -50,11 +50,12 @@ export function DateGroup({ group, projects }: DateGroupProps) {
         >
           {label}
         </h2>
-        <div className="h-px flex-1 bg-border" />
+        <div className="bg-border h-px flex-1" />
       </div>
       <div className="flex flex-col">
         {group.tasks.map((task) => {
-          const project = projects.find((p) => p.id === task.project_id) ?? null;
+          const project =
+            projects.find((p) => p.id === task.project_id) ?? null;
           return <TaskItem key={task.id} task={task} project={project} />;
         })}
       </div>
