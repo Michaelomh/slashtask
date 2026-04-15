@@ -78,7 +78,8 @@ export function RichTextEditor({
       },
     },
     onUpdate({ editor }) {
-      const markdown = editor.storage.markdown.getMarkdown();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const markdown = (editor.storage as any).markdown.getMarkdown();
       const plainText = editor.getText();
       lastMarkdown.current = markdown;
       onChange(markdown, plainText);

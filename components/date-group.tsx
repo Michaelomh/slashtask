@@ -1,8 +1,15 @@
+'use client';
+
+import { useDroppable } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { type Task, type Project } from '@/lib/types';
-import { format, isToday, isTomorrow, isPast, startOfDay, addDays } from 'date-fns';
+import { format, isToday, isTomorrow, isPast, startOfDay } from 'date-fns';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import { TaskItem } from './task-item';
+import { DraggableTaskItem, SortableTaskItem } from './sortable-task-item';
 
 export type TaskGroup = {
   date: string; // YYYY-MM-DD
@@ -25,7 +32,11 @@ export function formatDateHeading(dateStr: string): {
 }
 
 /** Generates a group for every calendar day in [start, end], merging tasks in. */
-export function buildDateGroups(tasks: Task[], start: Date, end: Date): TaskGroup[] {
+export function buildDateGroups(
+  tasks: Task[],
+  start: Date,
+  end: Date
+): TaskGroup[] {
   const map = new Map<string, Task[]>();
   for (const task of tasks) {
     if (!task.due_date || task.is_completed) continue;
@@ -76,8 +87,11 @@ export function OverdueGroup({ tasks, projects }: OverdueGroupProps) {
 
       <div className="flex flex-col">
         {tasks.map((task) => {
-          const project = projects.find((p) => p.id === task.project_id) ?? null;
-          return <TaskItem key={task.id} task={task} project={project} />;
+          const project =
+            projects.find((p) => p.id === task.project_id) ?? null;
+          return (
+            <DraggableTaskItem key={task.id} task={task} project={project} />
+          );
         })}
       </div>
     </div>
@@ -91,6 +105,8 @@ interface DateGroupProps {
 
 export function DateGroup({ group, projects }: DateGroupProps) {
   const { label, isOverdue } = formatDateHeading(group.date);
+  const { setNodeRef, isOver } = useDroppable({ id: group.date });
+  const taskIds = group.tasks.map((t) => t.id);
 
   return (
     <div className="mb-6">
@@ -103,13 +119,27 @@ export function DateGroup({ group, projects }: DateGroupProps) {
         <div className="bg-border h-px flex-1" />
       </div>
 
-      <div className="flex flex-col">
-        {group.tasks.map((task) => {
-          const project =
-            projects.find((p) => p.id === task.project_id) ?? null;
-          return <TaskItem key={task.id} task={task} project={project} />;
-        })}
-      </div>
+      <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+        <div
+          ref={setNodeRef}
+          className={`flex flex-col rounded transition-colors ${isOver ? 'bg-accent/30' : ''}`}
+        >
+          {group.tasks.map((task) => {
+            const project =
+              projects.find((p) => p.id === task.project_id) ?? null;
+            return (
+              <SortableTaskItem
+                key={task.id}
+                task={task}
+                project={project}
+                containerId={group.date}
+              />
+            );
+          })}
+          {/* Spacer so empty groups remain droppable */}
+          {group.tasks.length === 0 && <div className="h-1" />}
+        </div>
+      </SortableContext>
 
       <Link
         href={`/task?date=${group.date}`}

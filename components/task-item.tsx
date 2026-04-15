@@ -1,9 +1,10 @@
 'use client';
 
+import { type DraggableAttributes, type DraggableSyntheticListeners } from '@dnd-kit/core';
 import { type Project, type Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isPast, startOfDay } from 'date-fns';
-import { CheckCircle2, Circle, ListTree } from 'lucide-react';
+import { CheckCircle2, Circle, GripVertical, ListTree } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -16,12 +17,19 @@ const priorityBorder: Record<number, string> = {
   4: 'border-l-transparent',
 };
 
+interface DragHandleProps {
+  listeners: DraggableSyntheticListeners;
+  attributes: DraggableAttributes;
+  isDragging: boolean;
+}
+
 interface TaskItemProps {
   task: Task;
   project: Project | null;
+  dragHandle?: DragHandleProps;
 }
 
-export function TaskItem({ task, project }: TaskItemProps) {
+export function TaskItem({ task, project, dragHandle }: TaskItemProps) {
   const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
 
@@ -70,13 +78,34 @@ export function TaskItem({ task, project }: TaskItemProps) {
   }
 
   return (
-    <Link
-      href={`/task/${task.id}`}
+    <div
       className={cn(
-        'group border-border/50 hover:bg-muted/30 flex items-start gap-3 border-b border-l-2 py-3 pr-4 pl-3 transition-all',
-        priorityBorder[task.priority]
+        'group border-border/50 flex items-start border-b border-l-2 transition-all',
+        priorityBorder[task.priority],
+        dragHandle?.isDragging && 'opacity-40'
       )}
     >
+      {/* Drag handle */}
+      <button
+        type="button"
+        aria-label="Drag to reorder"
+        className={cn(
+          'text-muted-foreground/30 hover:text-muted-foreground flex shrink-0 cursor-grab items-center self-stretch px-1.5 active:cursor-grabbing',
+          !dragHandle && 'hidden'
+        )}
+        {...dragHandle?.listeners}
+        {...dragHandle?.attributes}
+      >
+        <GripVertical className="size-3.5" />
+      </button>
+
+      <Link
+        href={`/task/${task.id}`}
+        className={cn(
+          'hover:bg-muted/30 flex flex-1 items-start gap-3 py-3 pr-4 transition-all',
+          dragHandle ? 'pl-1' : 'pl-3'
+        )}
+      >
       {/* Checkbox */}
       <span
         role="button"
@@ -133,6 +162,7 @@ export function TaskItem({ task, project }: TaskItemProps) {
           {project.name}
         </span>
       )}
-    </Link>
+      </Link>
+    </div>
   );
 }
