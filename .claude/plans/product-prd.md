@@ -311,7 +311,7 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 - [x] Delete task: cascade-delete sub-tasks; show confirmation dialog if sub-tasks exist`
 - [x] Edit title, description (markdown with toggle preview), project, due date, priority, effort
 - [x] Drag-to-reorder tasks within any view; persist updated `order` to DB
-- [ ] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
+- [x] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
 - [ ] Recurring tasks: on completion, mark original complete and insert new task row with next due date from `rrule`
 
 ### Phase X - Clean up.

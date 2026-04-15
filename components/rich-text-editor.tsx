@@ -20,6 +20,7 @@ import { Markdown } from 'tiptap-markdown';
 interface RichTextEditorProps {
   value: string;
   onChange: (markdown: string, plainText: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   className?: string;
 }
@@ -55,6 +56,7 @@ function ToolbarButton({ onClick, active, children, title }: ToolbarButtonProps)
 export function RichTextEditor({
   value,
   onChange,
+  onBlur,
   placeholder = 'Description',
   className,
 }: RichTextEditorProps) {
@@ -76,6 +78,9 @@ export function RichTextEditor({
       attributes: {
         class: 'tiptap-content',
       },
+    },
+    onBlur() {
+      onBlur?.();
     },
     onUpdate({ editor }) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

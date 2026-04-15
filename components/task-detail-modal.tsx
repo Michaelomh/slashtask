@@ -20,6 +20,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { RichTextEditor } from '@/components/rich-text-editor';
+import { ShortcutDropdown } from '@/components/shortcut-dropdown';
+import { TitleInput } from '@/components/title-input';
+import { useEffortShortcut } from '@/hooks/use-effort-shortcut';
+import { useProjectShortcut } from '@/hooks/use-project-shortcut';
+import { usePriorityShortcut } from '@/hooks/use-priority-shortcut';
+import { parseDateToken, removeTriggerToken } from '@/lib/shortcut-parser';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { EFFORTS, PRIORITIES } from '@/lib/enums';
@@ -38,7 +44,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 const TOOLBAR_CLS =
@@ -59,7 +65,8 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
   const [completed, setCompleted] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [pickerDate, setPickerDate] = useState<Date | null>(null);
+  const [lastSource, setLastSource] = useState<'picker' | 'shortcut'>('picker');
   const [priority, setPriority] = useState<number>(4);
   const [effort, setEffort] = useState<number>(2);
   const [project, setProject] = useState<Project | null>(null);
@@ -78,9 +85,24 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
   const [newSubPriority, setNewSubPriority] = useState<number>(4);
   const [savingSubTask, setSavingSubTask] = useState(false);
 
-  const titleDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const descDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const newSubTitleRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const shortcut = useProjectShortcut(projects);
+  const priorityShortcut = usePriorityShortcut();
+  const effortShortcut = useEffortShortcut();
+
+  // Date shortcut — derived from title, no confirm step
+  const token = useMemo(() => parseDateToken(title, new Date()), [title]);
+  const prevTokenText = useRef<string | null>(null);
+  useEffect(() => {
+    if (token?.text !== prevTokenText.current) {
+      prevTokenText.current = token?.text ?? null;
+      if (token) setLastSource('shortcut');
+    }
+  }, [token]);
+
+  const effectiveDueDate = lastSource === 'shortcut' && token ? token.date : pickerDate;
 
   useEffect(() => {
     Promise.all([
@@ -95,7 +117,7 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
         setCompleted(taskData.is_completed);
         setTitle(taskData.title);
         setDescription(taskData.description ?? '');
-        setDueDate(
+        setPickerDate(
           taskData.due_date ? new Date(taskData.due_date + 'T00:00:00') : null
         );
         setPriority(taskData.priority);
@@ -135,29 +157,41 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
 
   function handleTitleChange(value: string) {
     setTitle(value);
-    if (titleDebounce.current) clearTimeout(titleDebounce.current);
-    titleDebounce.current = setTimeout(async () => {
-      setSavingTask(true);
-      await patch({ title: value });
-      setSavingTask(false);
-    }, 500);
   }
+
+  async function handleTitleBlur() {
+    setSavingTask(true);
+    const cleanTitle = token ? removeTriggerToken(title, token.start, token.end) : title;
+    if (cleanTitle !== title) setTitle(cleanTitle);
+    const updates: Record<string, unknown> = { title: cleanTitle.trim() };
+    if (lastSource === 'shortcut' && token) {
+      updates.due_date = format(token.date, 'yyyy-MM-dd');
+      setPickerDate(token.date);
+      setLastSource('picker');
+    }
+    await patch(updates);
+    setSavingTask(false);
+  }
+
+  const [descriptionPlain, setDescriptionPlain] = useState('');
 
   function handleDescriptionChange(markdown: string, plainText: string) {
     setDescription(markdown);
-    if (descDebounce.current) clearTimeout(descDebounce.current);
-    descDebounce.current = setTimeout(async () => {
-      setSavingTask(true);
-      await patch({
-        description: markdown,
-        description_text: plainText.slice(0, 500),
-      });
-      setSavingTask(false);
-    }, 500);
+    setDescriptionPlain(plainText);
+  }
+
+  async function handleDescriptionBlur() {
+    setSavingTask(true);
+    await patch({
+      description,
+      description_text: descriptionPlain.slice(0, 500),
+    });
+    setSavingTask(false);
   }
 
   async function handleDueDateChange(date: Date | null) {
-    setDueDate(date);
+    setPickerDate(date);
+    setLastSource('picker');
     setSavingTask(true);
     const due_date = date
       ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -338,10 +372,40 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
                       <Circle className="size-5" />
                     )}
                   </button>
-                  <input
+                  <TitleInput
+                    ref={titleInputRef}
                     value={title}
-                    onChange={(e) => handleTitleChange(e.target.value)}
-                    className={cn(
+                    highlight={token ? { start: token.start, end: token.end } : null}
+                    onBlur={handleTitleBlur}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const pos = e.target.selectionStart ?? 0;
+                      handleTitleChange(val);
+                      shortcut.onInputChange(val, pos);
+                      priorityShortcut.onInputChange(val, pos);
+                      effortShortcut.onInputChange(val, pos);
+                    }}
+                    onKeyDown={(e) => {
+                      const projectResult = shortcut.onKeyDown(e, title);
+                      if (projectResult.consumed) {
+                        if (projectResult.confirm) { handleTitleChange(projectResult.confirm.newTitle); handleProjectChange(projectResult.confirm.project); }
+                        else if (projectResult.clearedTitle !== undefined) handleTitleChange(projectResult.clearedTitle);
+                        return;
+                      }
+                      const priorityResult = priorityShortcut.onKeyDown(e, title);
+                      if (priorityResult.consumed) {
+                        if (priorityResult.confirm) { handleTitleChange(priorityResult.confirm.newTitle); handlePriorityChange(priorityResult.confirm.value); }
+                        else if (priorityResult.clearedTitle !== undefined) handleTitleChange(priorityResult.clearedTitle);
+                        return;
+                      }
+                      const effortResult = effortShortcut.onKeyDown(e, title);
+                      if (effortResult.consumed) {
+                        if (effortResult.confirm) { handleTitleChange(effortResult.confirm.newTitle); handleEffortChange(effortResult.confirm.value); }
+                        else if (effortResult.clearedTitle !== undefined) handleTitleChange(effortResult.clearedTitle);
+                        return;
+                      }
+                    }}
+                    inputClassName={cn(
                       'placeholder:text-muted-foreground/50 w-full bg-transparent text-lg font-medium focus:outline-none',
                       completed && 'text-muted-foreground line-through'
                     )}
@@ -352,11 +416,13 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
                 <RichTextEditor
                   value={description}
                   onChange={handleDescriptionChange}
+                  onBlur={handleDescriptionBlur}
                   placeholder="Description"
                   className="mt-1.5"
                 />
 
                 {/* Toolbar */}
+                <div className="relative">
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {/* Project */}
                   <DropdownMenu>
@@ -400,7 +466,7 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <DatePicker value={dueDate} onChange={handleDueDateChange} />
+                  <DatePicker value={effectiveDueDate} onChange={handleDueDateChange} />
 
                   {/* Priority */}
                   <DropdownMenu>
@@ -444,6 +510,56 @@ export function TaskDetailModal({ id }: TaskDetailModalProps) {
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                </div>
+
+                {/* Shortcut dropdowns */}
+                {shortcut.isOpen && (
+                  <ShortcutDropdown
+                    items={shortcut.filteredProjects.map((p) => ({
+                      id: p.id,
+                      label: p.name,
+                      icon: p.emoji
+                        ? <span className="font-bold" style={{ color: p.color }}>{p.emoji}</span>
+                        : <Inbox className="size-3.5 shrink-0" />,
+                    }))}
+                    highlightIndex={shortcut.highlightIndex}
+                    onSelect={(i) => {
+                      const result = shortcut.confirmAt(i, title);
+                      if (result) { handleTitleChange(result.newTitle); handleProjectChange(result.project); }
+                      titleInputRef.current?.focus();
+                    }}
+                  />
+                )}
+                {priorityShortcut.isOpen && (
+                  <ShortcutDropdown
+                    items={priorityShortcut.filteredItems.map((item) => ({
+                      id: item.id,
+                      label: item.label,
+                      icon: <Flag className={cn('size-3.5', item.color)} />,
+                    }))}
+                    highlightIndex={priorityShortcut.highlightIndex}
+                    onSelect={(i) => {
+                      const result = priorityShortcut.confirmAt(i, title);
+                      if (result) { handleTitleChange(result.newTitle); handlePriorityChange(result.value); }
+                      titleInputRef.current?.focus();
+                    }}
+                  />
+                )}
+                {effortShortcut.isOpen && (
+                  <ShortcutDropdown
+                    items={effortShortcut.filteredItems.map((item) => ({
+                      id: item.id,
+                      label: item.label,
+                      icon: <Zap className="size-3.5 shrink-0" />,
+                    }))}
+                    highlightIndex={effortShortcut.highlightIndex}
+                    onSelect={(i) => {
+                      const result = effortShortcut.confirmAt(i, title);
+                      if (result) { handleTitleChange(result.newTitle); handleEffortChange(result.value); }
+                      titleInputRef.current?.focus();
+                    }}
+                  />
+                )}
                 </div>
 
                 {/* ── Sub-tasks section ── */}
