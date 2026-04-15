@@ -9,35 +9,36 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { PRIORITIES } from '@/lib/enums';
 import { type Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ChevronDown, Flag, Inbox } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-const PRIORITIES = [
-  { value: 1 as const, label: 'Priority 1', color: 'text-red-500' },
-  { value: 2 as const, label: 'Priority 2', color: 'text-orange-500' },
-  { value: 3 as const, label: 'Priority 3', color: 'text-blue-500' },
-  { value: 4 as const, label: 'Priority 4', color: 'text-muted-foreground' },
-];
-
-interface NewTaskModalProps {
-  projects: Project[];
-}
-
-export function NewTaskModal({ projects }: NewTaskModalProps) {
+export function NewTaskModal() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<Date | null>(new Date());
-  const [priority, setPriority] = useState<1 | 2 | 3 | 4>(4);
+  const [priority, setPriority] = useState<number>(4);
   const [project, setProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/projects')
+      .then((r) => r.json())
+      .then((data) => setProjects(data))
+      .catch(() => toast.error('Failed to load projects'))
+      .finally(() => setLoadingProjects(false));
+  }, []);
 
   function handleClose() {
     router.back();
@@ -134,50 +135,67 @@ export function NewTaskModal({ projects }: NewTaskModalProps) {
 
         {/* Footer */}
         <div className="border-border flex items-center justify-between border-t px-4 py-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm">
-              {project ? (
-                <>
-                  <span className="font-bold" style={{ color: project.color }}>
-                    #
-                  </span>
-                  {project.name}
-                </>
-              ) : (
-                <>
-                  <Inbox className="size-3.5 shrink-0" />
-                  No Project
-                </>
-              )}
-              <ChevronDown className="size-3 opacity-60" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem
-                onClick={() => setProject(null)}
-                className="gap-2"
-              >
-                <Inbox className="size-3.5" />
-                No Project
-              </DropdownMenuItem>
-              {projects.map((p) => (
+          {/* Projects */}
+          {loadingProjects ? (
+            <Skeleton className="h-8 w-28 rounded-md" />
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm">
+                {project ? (
+                  <>
+                    <span
+                      className="font-bold"
+                      style={{ color: project.color }}
+                    >
+                      {project.emoji}
+                    </span>
+                    {project.name}
+                  </>
+                ) : (
+                  <>
+                    <Inbox className="size-3.5 shrink-0" />
+                    No Project
+                  </>
+                )}
+                <ChevronDown className="size-3 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
                 <DropdownMenuItem
-                  key={p.id}
-                  onClick={() => setProject(p)}
+                  onClick={() => setProject(null)}
                   className="gap-2"
-                  style={{ color: p.color }}
                 >
-                  <span className="font-bold">{p.emoji}</span>
-                  {p.name}
+                  <Inbox className="size-3.5" />
+                  No Project
                 </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {projects.map((p) => (
+                  <DropdownMenuItem
+                    key={p.id}
+                    onClick={() => setProject(p)}
+                    className="gap-2"
+                    style={{ color: p.color }}
+                  >
+                    <span className="font-bold">{p.emoji}</span>
+                    {p.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleClose} disabled={saving}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClose}
+              disabled={saving}
+            >
               Cancel
             </Button>
-            <Button size="sm" disabled={!title.trim() || saving} onClick={handleSubmit}>
+            <Button
+              size="sm"
+              disabled={!title.trim() || saving}
+              onClick={handleSubmit}
+            >
               {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
               Add task
             </Button>

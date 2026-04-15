@@ -30,15 +30,16 @@ export default async function CompletedPage() {
   const projects = projectsResult.data ?? [];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-[800px] px-4 py-8">
       <h1 className="mb-6 text-xl font-semibold">Completed</h1>
 
       {completedTasks.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No completed tasks yet.</p>
+        <p className="text-muted-foreground text-sm">No completed tasks yet.</p>
       ) : (
         <div className="flex flex-col">
           {completedTasks.map((task) => {
-            const project = projects.find((p) => p.id === task.project_id) ?? null;
+            const project =
+              projects.find((p) => p.id === task.project_id) ?? null;
             return <TaskItem key={task.id} task={task} project={project} />;
           })}
         </div>

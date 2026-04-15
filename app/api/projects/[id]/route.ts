@@ -1,3 +1,4 @@
+import { toKebabCase } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -16,6 +17,10 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
+
+  if (body.name) {
+    body.slug = toKebabCase(body.name);
+  }
 
   const { data, error } = await supabase
     .from('projects')

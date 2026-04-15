@@ -9,20 +9,67 @@ import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 const EMOJI_OPTIONS = [
-  '💼', '🏠', '🏃', '📚', '💰', '🎯', '🎨', '🎵',
-  '🚀', '💡', '🔧', '📊', '🌟', '❤️', '🎮', '🌍',
-  '🍎', '☕', '🎁', '📝', '🔬', '🏋️', '✈️', '🎭',
-  '📱', '💻', '🎓', '🏆', '🌱', '🔒', '📷', '🎪',
-  '⚡', '🔥', '🌊', '🎸', '🏄', '🧠', '🦋', '🌈',
+  '💼',
+  '🏠',
+  '🏃',
+  '📚',
+  '💰',
+  '🎯',
+  '🎨',
+  '🎵',
+  '🚀',
+  '💡',
+  '🔧',
+  '📊',
+  '🌟',
+  '❤️',
+  '🎮',
+  '🌍',
+  '🍎',
+  '☕',
+  '🎁',
+  '📝',
+  '🔬',
+  '🏋️',
+  '✈️',
+  '🎭',
+  '📱',
+  '💻',
+  '🎓',
+  '🏆',
+  '🌱',
+  '🔒',
+  '📷',
+  '🎪',
+  '⚡',
+  '🔥',
+  '🌊',
+  '🎸',
+  '🏄',
+  '🧠',
+  '🦋',
+  '🌈',
 ];
 
 const COLOR_OPTIONS = [
-  '#e74c3c', '#e67e22', '#f1c40f', '#27ae60',
-  '#1abc9c', '#3498db', '#9b59b6', '#e91e63',
-  '#ff5722', '#795548', '#607d8b', '#34495e',
+  '#e74c3c',
+  '#e67e22',
+  '#f1c40f',
+  '#27ae60',
+  '#1abc9c',
+  '#3498db',
+  '#9b59b6',
+  '#e91e63',
+  '#ff5722',
+  '#795548',
+  '#607d8b',
+  '#34495e',
 ];
 
-type ProjectPayload = Omit<Project, 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'>;
+type ProjectPayload = Omit<
+  Project,
+  'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
+>;
 
 interface ProjectFormDialogProps {
   open: boolean;
@@ -99,8 +146,10 @@ export function ProjectFormDialog({
           /* ── Confirm delete ── */
           <div className="flex flex-col gap-4 p-6">
             <div className="flex flex-col gap-1.5">
-              <h2 className="font-semibold">Delete &ldquo;{initialData?.name}&rdquo;?</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="font-semibold">
+                Delete &ldquo;{initialData?.name}&rdquo;?
+              </h2>
+              <p className="text-muted-foreground text-sm">
                 All tasks under this project will be permanently deleted. This
                 cannot be undone.
               </p>
@@ -135,7 +184,7 @@ export function ProjectFormDialog({
 
               {/* Name */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
+                <label className="text-muted-foreground text-xs font-medium">
                   Name
                 </label>
                 <div className="flex items-center gap-2">
@@ -153,7 +202,7 @@ export function ProjectFormDialog({
 
               {/* Emoji */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
+                <label className="text-muted-foreground text-xs font-medium">
                   Emoji
                 </label>
                 <div className="grid grid-cols-8 gap-1">
@@ -162,8 +211,8 @@ export function ProjectFormDialog({
                       key={e}
                       onClick={() => setEmoji(e)}
                       className={cn(
-                        'flex h-8 w-8 items-center justify-center rounded-md text-base transition-colors hover:bg-muted',
-                        emoji === e && 'bg-accent ring-2 ring-ring'
+                        'hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md text-base transition-colors',
+                        emoji === e && 'bg-accent ring-ring ring-2'
                       )}
                     >
                       {e}
@@ -174,7 +223,7 @@ export function ProjectFormDialog({
 
               {/* Color */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
+                <label className="text-muted-foreground text-xs font-medium">
                   Color
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -184,7 +233,8 @@ export function ProjectFormDialog({
                       onClick={() => setColor(c)}
                       className={cn(
                         'h-6 w-6 rounded-full transition-transform hover:scale-110',
-                        color === c && 'ring-2 ring-ring ring-offset-2 ring-offset-background'
+                        color === c &&
+                          'ring-ring ring-offset-background ring-2 ring-offset-2'
                       )}
                       style={{ backgroundColor: c }}
                     />
@@ -196,7 +246,7 @@ export function ProjectFormDialog({
             {/* Footer */}
             <div
               className={cn(
-                'flex items-center border-t border-border px-5 py-3',
+                'border-border flex items-center border-t px-5 py-3',
                 mode === 'edit' ? 'justify-between' : 'justify-end'
               )}
             >
@@ -210,10 +260,19 @@ export function ProjectFormDialog({
                 </Button>
               )}
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleClose} disabled={saving}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClose}
+                  disabled={saving}
+                >
                   Cancel
                 </Button>
-                <Button size="sm" disabled={!name.trim() || saving} onClick={handleSave}>
+                <Button
+                  size="sm"
+                  disabled={!name.trim() || saving}
+                  onClick={handleSave}
+                >
                   {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
                   {mode === 'create' ? 'Add project' : 'Save'}
                 </Button>

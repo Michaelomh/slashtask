@@ -54,7 +54,7 @@ export function TaskItem({ task, project }: TaskItemProps) {
     <Link
       href={`/task/${task.id}`}
       className={cn(
-        'group flex items-start gap-3 border-b border-border/50 border-l-2 py-3 pl-3 pr-4 transition-colors hover:bg-muted/30',
+        'group border-border/50 hover:bg-muted/30 flex items-start gap-3 border-b border-l-2 py-3 pr-4 pl-3 transition-colors',
         priorityBorder[task.priority]
       )}
     >
@@ -65,10 +65,10 @@ export function TaskItem({ task, project }: TaskItemProps) {
         aria-label="Complete task"
         onClick={handleToggle}
         onKeyDown={(e) => e.key === 'Enter' && handleToggle(e as never)}
-        className="mt-0.5 shrink-0 text-muted-foreground/50 transition-colors hover:text-primary"
+        className="text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors"
       >
         {completed ? (
-          <CheckCircle2 className="size-4 text-primary" />
+          <CheckCircle2 className="text-primary size-4" />
         ) : (
           <Circle className="size-4" />
         )}
@@ -86,7 +86,7 @@ export function TaskItem({ task, project }: TaskItemProps) {
           {task.title}
         </span>
         {task.description_text && (
-          <span className="truncate text-xs text-muted-foreground">
+          <span className="text-muted-foreground truncate text-xs">
             {task.description_text}
           </span>
         )}
@@ -94,9 +94,9 @@ export function TaskItem({ task, project }: TaskItemProps) {
 
       {/* Project tag */}
       {project && (
-        <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+        <span className="text-muted-foreground ml-auto flex shrink-0 items-center gap-1 text-xs">
           <span className="font-bold" style={{ color: project.color }}>
-            #
+            {project.emoji}
           </span>
           {project.name}
         </span>

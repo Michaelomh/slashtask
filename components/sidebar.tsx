@@ -10,6 +10,7 @@ import {
   MoreHorizontal,
   Plus,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -34,7 +35,10 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
   const [editTarget, setEditTarget] = useState<Project | null>(null);
 
   async function handleCreate(
-    data: Omit<Project, 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'>
+    data: Omit<
+      Project,
+      'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
+    >
   ) {
     const res = await fetch('/api/projects', {
       method: 'POST',
@@ -52,7 +56,10 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
 
   async function handleUpdate(
     id: string,
-    data: Omit<Project, 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'>
+    data: Omit<
+      Project,
+      'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
+    >
   ) {
     const res = await fetch(`/api/projects/${id}`, {
       method: 'PATCH',
@@ -68,7 +75,7 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
     router.refresh();
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, projectSlug: string) {
     const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
     if (!res.ok) {
       toast.error('Failed to delete project');
@@ -76,10 +83,26 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
     }
     setProjects((prev) => prev.filter((p) => p.id !== id));
     router.refresh();
+    if (pathname.includes(`/project/${projectSlug}`)) {
+      router.push('/');
+    }
   }
 
   return (
     <div className="flex h-full flex-col gap-4 px-3 py-4">
+      {/* Logo */}
+      <div className="flex items-center gap-2.5 px-3 py-1">
+        <Image
+          src="/logo.png"
+          loading="lazy"
+          alt="SlashTask logo"
+          width={24}
+          height={24}
+          className="shrink-0"
+        />
+        <span className="text-sm font-semibold tracking-tight">SlashTask</span>
+      </div>
+
       {/* Navigation */}
       <nav className="flex flex-col gap-0.5">
         {navLinks.map(({ href, label, icon: Icon }) => {
@@ -123,16 +146,27 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
         {/* Project list */}
         <div className="mt-1 flex flex-col gap-0.5">
           {projects.map((project) => {
-            const isActive = pathname === `/project/${project.id}`;
+            const isActive = pathname === `/project/${project.slug}`;
             return (
-              <div key={project.id} className="group/project relative">
+              <div
+                key={project.id}
+                className="group/project relative border-l-4"
+                style={
+                  {
+                    borderLeftColor: project.color,
+                    '--project-color': project.color,
+                    '--project-bg-active': `${project.color}25`,
+                    '--project-bg-hover': `${project.color}15`,
+                  } as React.CSSProperties
+                }
+              >
                 <Link
-                  href={`/project/${project.id}`}
+                  href={`/project/${project.slug}`}
                   className={cn(
                     'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
                     isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+                      ? 'bg-[var(--project-bg-active)] text-[var(--project-color)]'
+                      : 'text-sidebar-foreground hover:bg-[var(--project-bg-hover)] hover:text-[var(--project-color)]'
                   )}
                 >
                   <span className="shrink-0 text-base leading-none">
@@ -147,18 +181,20 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
                       e.stopPropagation();
                       setEditTarget(project);
                     }}
-                    className="text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ml-auto hidden size-5 shrink-0 items-center justify-center rounded transition-colors group-hover/project:flex"
+                    className="ml-auto hidden size-5 shrink-0 items-center justify-center rounded opacity-60 transition-colors group-hover/project:flex hover:opacity-100"
                     aria-label={`Edit ${project.name}`}
                   >
                     <MoreHorizontal className="size-3.5" />
                   </button>
 
-                  <Badge
-                    variant="secondary"
-                    className="ml-auto h-5 min-w-5 shrink-0 px-1.5 text-xs group-hover/project:hidden"
-                  >
-                    1
-                  </Badge>
+                  {(project.task_count ?? 0) > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-auto h-5 min-w-5 shrink-0 px-1.5 text-xs group-hover/project:hidden"
+                    >
+                      {project.task_count}
+                    </Badge>
+                  )}
                 </Link>
               </div>
             );
@@ -185,7 +221,7 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
           mode="edit"
           initialData={editTarget}
           onSave={(data) => handleUpdate(editTarget.id, data)}
-          onDelete={() => handleDelete(editTarget.id)}
+          onDelete={() => handleDelete(editTarget.id, editTarget.slug)}
         />
       )}
     </div>

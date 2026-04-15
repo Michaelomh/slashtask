@@ -1,3 +1,4 @@
+import { toKebabCase } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -33,10 +34,11 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const { name, emoji, color, order } = body;
+  const slug = toKebabCase(name);
 
   const { data, error } = await supabase
     .from('projects')
-    .insert({ name, emoji, color, order, user_id: user.id })
+    .insert({ name, slug, emoji, color, order, user_id: user.id })
     .select()
     .single();
 

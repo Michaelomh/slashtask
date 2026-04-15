@@ -31,7 +31,7 @@ export default async function UpcomingPage() {
   const projects = projectsResult.data ?? [];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-[800px] px-4 py-8">
       <h1 className="mb-6 text-xl font-semibold">Upcoming</h1>
       <UpcomingView tasks={tasks} projects={projects} />
     </div>

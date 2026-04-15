@@ -14,8 +14,33 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'SlashTask',
-  description: 'Personal task manager',
+  title: {
+    default: 'SlashTask',
+    template: '%s | SlashTask',
+  },
+  description:
+    'SlashTask is a personal task manager that helps you stay on top of your work, projects, and goals.',
+  keywords: ['task manager', 'productivity', 'to-do list', 'project management'],
+  authors: [{ name: 'SlashTask' }],
+  creator: 'SlashTask',
+  metadataBase: new URL('https://slashtask.app'),
+  openGraph: {
+    type: 'website',
+    title: 'SlashTask',
+    description:
+      'A personal task manager that helps you stay on top of your work, projects, and goals.',
+    siteName: 'SlashTask',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'SlashTask',
+    description:
+      'A personal task manager that helps you stay on top of your work, projects, and goals.',
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

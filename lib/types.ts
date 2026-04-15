@@ -1,6 +1,7 @@
 export type Project = {
   id: string;
   name: string;
+  slug: string;
   color: string;
   emoji: string;
   order: number;
@@ -8,6 +9,7 @@ export type Project = {
   user_id: string;
   created_at: string;
   updated_at: string;
+  task_count?: number; // computed, not a DB column
 };
 
 export type Task = {
