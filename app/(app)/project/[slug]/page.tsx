@@ -1,8 +1,8 @@
 import { DateGroup } from '@/components/date-group';
 import { groupTasksByDate } from '@/lib/task-grouping';
-import { type Task } from '@/lib/types';
+import { Task } from '@/lib/types';
 import { createClient } from '@/utils/supabase/server';
-import type { Metadata } from 'next';
+import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 

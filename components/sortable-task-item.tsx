@@ -3,7 +3,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { type Project, type Task } from '@/lib/types';
+import { Project, Task } from '@/lib/types';
 import { TaskItem } from './task-item';
 
 /** Used inside a SortableContext (date groups). */

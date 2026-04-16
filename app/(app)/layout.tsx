@@ -2,6 +2,7 @@ import { MobileHeader } from '@/components/mobile-header';
 import { Sidebar } from '@/components/sidebar';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { Suspense } from 'react';
 
 export default async function AppLayout({
   children,
@@ -48,9 +49,13 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <Sidebar initialProjects={projectList} />
+      <Suspense fallback={null}>
+        <Sidebar projects={projectList} />
+      </Suspense>
       <div className="flex flex-1 flex-col overflow-hidden">
-        <MobileHeader initialProjects={projectList} />
+        <Suspense fallback={null}>
+          <MobileHeader projects={projectList} />
+        </Suspense>
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
       {modal}

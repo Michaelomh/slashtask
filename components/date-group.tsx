@@ -5,20 +5,16 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { type Task, type Project } from '@/lib/types';
-import {
-  formatDateHeading,
-  type TaskGroup,
-} from '@/lib/task-grouping';
+import { Task, Project } from '@/lib/types';
+import { formatDateHeading, TaskGroup } from '@/lib/task-grouping';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { DraggableTaskItem, SortableTaskItem } from './sortable-task-item';
 
-
-interface OverdueGroupProps {
+type OverdueGroupProps = {
   tasks: Task[];
   projects: Project[];
-}
+};
 
 export function OverdueGroup({ tasks, projects }: OverdueGroupProps) {
   if (tasks.length === 0) return null;
@@ -43,12 +39,12 @@ export function OverdueGroup({ tasks, projects }: OverdueGroupProps) {
   );
 }
 
-interface DateGroupProps {
+type DateGroupProps = {
   group: TaskGroup;
-  projects: Project[];
-}
+  projectMap: Map<string, Project>;
+};
 
-export function DateGroup({ group, projects }: DateGroupProps) {
+export function DateGroup({ group, projectMap }: DateGroupProps) {
   const { label, isOverdue } = formatDateHeading(group.date);
   const { setNodeRef, isOver } = useDroppable({ id: group.date });
   const taskIds = group.tasks.map((t) => t.id);
@@ -70,13 +66,15 @@ export function DateGroup({ group, projects }: DateGroupProps) {
           className={`flex flex-col rounded transition-colors ${isOver ? 'bg-accent/30' : ''}`}
         >
           {group.tasks.map((task) => {
-            const project =
-              projects.find((p) => p.id === task.project_id) ?? null;
+            const project = task.project_id
+              ? projectMap.get(task.project_id)
+              : null;
+
             return (
               <SortableTaskItem
                 key={task.id}
                 task={task}
-                project={project}
+                project={project || null}
                 containerId={group.date}
               />
             );

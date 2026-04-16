@@ -5,12 +5,11 @@ import {
   type DraggableAttributes,
   type DraggableSyntheticListeners,
 } from '@dnd-kit/core';
-import { type Project, type Task } from '@/lib/types';
+import { Project, Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isPast, startOfDay } from 'date-fns';
 import { CheckCircle2, Circle, GripVertical, ListTree } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -21,20 +20,19 @@ const priorityBorder: Record<number, string> = {
   4: 'border-l-transparent',
 };
 
-interface DragHandleProps {
+type DragHandleProps = {
   listeners: DraggableSyntheticListeners;
   attributes: DraggableAttributes;
   isDragging: boolean;
-}
+};
 
-interface TaskItemProps {
+type TaskItemProps = {
   task: Task;
   project: Project | null;
   dragHandle?: DragHandleProps;
-}
+};
 
 export function TaskItem({ task, project, dragHandle }: TaskItemProps) {
-  const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
 
   const isOverdue =
@@ -68,7 +66,6 @@ export function TaskItem({ task, project, dragHandle }: TaskItemProps) {
 
     try {
       await updateTask(task.id, { is_completed: next });
-      router.refresh();
     } catch {
       setCompleted(!next);
       toast.error('Failed to update task');

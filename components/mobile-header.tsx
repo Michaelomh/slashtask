@@ -1,7 +1,7 @@
 'use client';
 
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { type Project } from '@/lib/types';
+import { Project } from '@/lib/types';
 import { Menu } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { SidebarContent } from './sidebar';
@@ -14,11 +14,11 @@ function usePageTitle() {
   return 'SlashTask';
 }
 
-interface MobileHeaderProps {
-  initialProjects: Project[];
-}
+type MobileHeaderProps = {
+  projects: Project[];
+};
 
-export function MobileHeader({ initialProjects }: MobileHeaderProps) {
+export function MobileHeader({ projects }: MobileHeaderProps) {
   const title = usePageTitle();
 
   return (
@@ -29,7 +29,7 @@ export function MobileHeader({ initialProjects }: MobileHeaderProps) {
           <span className="sr-only">Open menu</span>
         </SheetTrigger>
         <SheetContent side="left" className="bg-sidebar w-64 p-0">
-          <SidebarContent initialProjects={initialProjects} />
+          <SidebarContent initialProjects={projects} />
         </SheetContent>
       </Sheet>
       <span className="text-sm font-semibold">{title}</span>

@@ -23,7 +23,7 @@ import {
 import { RichTextEditor } from '@/components/rich-text-editor';
 import { Spinner } from '@/components/ui/spinner';
 import { EFFORTS, PRIORITIES } from '@/lib/enums';
-import { type Project } from '@/lib/types';
+import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Flag, Inbox, Zap } from 'lucide-react';
@@ -40,12 +40,15 @@ import { toast } from 'sonner';
 const TOOLBAR_CLS =
   'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors';
 
-const TODAY = format(new Date(), 'yyyy-MM-dd');
+type NewTaskModalProps = {
+  projects: Project[];
+};
 
-export function NewTaskModal() {
+export function NewTaskModal({ projects }: NewTaskModalProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
+  const TODAY = format(new Date(), 'yyyy-MM-dd');
 
   const dateParam = searchParams.get('date');
   const initialDate = dateParam
@@ -60,8 +63,6 @@ export function NewTaskModal() {
   const [priority, setPriority] = useState<number>(4);
   const [effort, setEffort] = useState<number>(2);
   const [project, setProject] = useState<Project | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
@@ -95,14 +96,6 @@ export function NewTaskModal() {
 
   const selectedEffort = EFFORTS.find((e) => e.value === effort)!;
 
-  useEffect(() => {
-    fetch('/api/projects')
-      .then((r) => r.json())
-      .then((data) => setProjects(data))
-      .catch(() => toast.error('Failed to load projects'))
-      .finally(() => setLoadingProjects(false));
-  }, []);
-
   function handleClose() {
     router.back();
   }
@@ -131,10 +124,11 @@ export function NewTaskModal() {
         project_id: project?.id ?? null,
         priority,
         effort,
-        due_date: effectiveDueDate ? format(effectiveDueDate, 'yyyy-MM-dd') : null,
+        due_date: effectiveDueDate
+          ? format(effectiveDueDate, 'yyyy-MM-dd')
+          : null,
       });
       router.back();
-      router.refresh();
     } catch {
       toast.error('Failed to create task');
       setSaving(false);
@@ -238,32 +232,24 @@ export function NewTaskModal() {
                     )}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-                    {loadingProjects ? (
-                      <div>
-                        <Spinner />
-                      </div>
-                    ) : (
-                      <>
-                        <DropdownMenuItem
-                          onClick={() => setProject(null)}
-                          className="gap-2"
-                        >
-                          <Inbox className="size-3.5" />
-                          No Project
-                        </DropdownMenuItem>
-                        {projects.map((p) => (
-                          <DropdownMenuItem
-                            key={p.id}
-                            onClick={() => setProject(p)}
-                            className="gap-2"
-                            style={{ color: p.color }}
-                          >
-                            <span className="font-bold">{p.emoji}</span>
-                            {p.name}
-                          </DropdownMenuItem>
-                        ))}
-                      </>
-                    )}
+                    <DropdownMenuItem
+                      onClick={() => setProject(null)}
+                      className="gap-2"
+                    >
+                      <Inbox className="size-3.5" />
+                      No Project
+                    </DropdownMenuItem>
+                    {projects.map((p) => (
+                      <DropdownMenuItem
+                        key={p.id}
+                        onClick={() => setProject(p)}
+                        className="gap-2"
+                        style={{ color: p.color }}
+                      >
+                        <span className="font-bold">{p.emoji}</span>
+                        {p.name}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
 

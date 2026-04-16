@@ -11,6 +11,10 @@ export async function login(
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
+  if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+    return { error: 'Email and password are required.' };
+  }
+
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 

@@ -1,10 +1,10 @@
 'use server';
 
-import { type Task } from '@/lib/types';
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { Task } from '@/lib/types';
+import { getDbClient } from '@/utils/supabase/action-client';
+import { revalidatePath } from 'next/cache';
 
-interface CreateTaskInput {
+type CreateTaskInput = {
   title: string;
   description?: string | null;
   description_text?: string | null;
@@ -17,13 +17,7 @@ interface CreateTaskInput {
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
+  const { supabase, user } = await getDbClient();
 
   const { data, error } = await supabase
     .from('tasks')
@@ -42,21 +36,31 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('[createTask]', error);
+    throw new Error('Failed to create task');
+  }
+  revalidatePath('/', 'layout');
   return data as Task;
+}
+
+type UpdateTaskInput = {
+  title?: string;
+  description?: string | null;
+  description_text?: string | null;
+  is_completed?: boolean;
+  priority?: number;
+  effort?: number;
+  due_date?: string | null;
+  project_id?: string | null;
+  completed_at?: string | null;
 }
 
 export async function updateTask(
   id: string,
-  input: Record<string, unknown>
+  input: UpdateTaskInput
 ): Promise<Task> {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
+  const { supabase, user } = await getDbClient();
 
   const body = { ...input };
   if ('is_completed' in body) {
@@ -71,24 +75,38 @@ export async function updateTask(
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('[updateTask]', error);
+    throw new Error('Failed to update task');
+  }
+  revalidatePath('/', 'layout');
   return data as Task;
 }
 
-interface ReorderItem {
+type ReorderItem = {
   id: string;
   order: number;
   due_date?: string | null;
 }
 
-export async function reorderTasks(items: ReorderItem[]): Promise<void> {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+export async function deleteTask(id: string): Promise<void> {
+  const { supabase, user } = await getDbClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
+  const { error } = await supabase
+    .from('tasks')
+    .update({ is_deleted: true })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('[deleteTask]', error);
+    throw new Error('Failed to delete task');
+  }
+  revalidatePath('/', 'layout');
+}
+
+export async function reorderTasks(items: ReorderItem[]): Promise<void> {
+  const { supabase, user } = await getDbClient();
 
   const results = await Promise.all(
     items.map(({ id, order, due_date }) => {
@@ -103,5 +121,9 @@ export async function reorderTasks(items: ReorderItem[]): Promise<void> {
   );
 
   const failed = results.find((r) => r.error);
-  if (failed?.error) throw new Error(failed.error.message);
+  if (failed?.error) {
+    console.error('[reorderTasks]', failed.error);
+    throw new Error('Failed to reorder tasks');
+  }
+  revalidatePath('/', 'layout');
 }

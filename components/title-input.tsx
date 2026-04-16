@@ -42,10 +42,7 @@ export const TitleInput = forwardRef<HTMLInputElement, TitleInputProps>(
         <input
           ref={ref}
           value={value}
-          className={cn(
-            'text-transparent [caret-color:var(--foreground)]',
-            inputClassName
-          )}
+          className={cn('caret-foreground text-transparent', inputClassName)}
           onScroll={(e) => {
             if (overlayRef.current) {
               overlayRef.current.scrollLeft = e.currentTarget.scrollLeft;

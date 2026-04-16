@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { type Project } from '@/lib/types';
+import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -82,14 +82,14 @@ type ProjectPayload = Omit<
   'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
 >;
 
-interface ProjectFormDialogProps {
+type ProjectFormDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';
   initialData?: Project;
   onSave: (data: ProjectPayload) => Promise<void>;
   onDelete?: () => Promise<void>;
-}
+};
 
 export function ProjectFormDialog({
   open,
@@ -120,7 +120,7 @@ export function ProjectFormDialog({
     if (!name.trim()) return;
     setSaving(true);
     await onSave({
-      id: mode === 'edit' && initialData ? initialData.id : crypto.randomUUID(),
+      id: mode === 'edit' && initialData ? initialData.id : undefined,
       name: name.trim(),
       emoji,
       color,

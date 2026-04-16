@@ -9,7 +9,8 @@ export type Project = {
   user_id: string;
   created_at: string;
   updated_at: string;
-  task_count?: number; // computed, not a DB column
+  // computed
+  task_count?: number;
 };
 
 export type Task = {
@@ -30,7 +31,7 @@ export type Task = {
   user_id: string;
   created_at: string;
   updated_at: string;
-  // computed — populated by server pages via embedded join
+  // computed
   sub_task_total?: number;
   sub_task_completed?: number;
 };

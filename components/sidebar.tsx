@@ -1,8 +1,12 @@
 'use client';
 
-import { createProject, deleteProject, updateProject } from '@/app/actions/projects';
+import {
+  createProject,
+  deleteProject,
+  updateProject,
+} from '@/app/actions/projects';
 import { Badge } from '@/components/ui/badge';
-import { type Project } from '@/lib/types';
+import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   CalendarDays,
@@ -24,9 +28,9 @@ const navLinks = [
   { href: '/completed', label: 'Completed', icon: CheckCircle2 },
 ];
 
-interface SidebarContentProps {
+type SidebarContentProps = {
   initialProjects: Project[];
-}
+};
 
 export function SidebarContent({ initialProjects }: SidebarContentProps) {
   const pathname = usePathname();
@@ -42,9 +46,11 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
     >
   ) {
     try {
-      const created = await createProject({ ...data, order: projects.length + 1 });
+      const created = await createProject({
+        ...data,
+        order: projects.length + 1,
+      });
       setProjects((prev) => [...prev, created]);
-      router.refresh();
     } catch {
       toast.error('Failed to create project');
     }
@@ -60,7 +66,6 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
     try {
       const updated = await updateProject(id, data);
       setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
-      router.refresh();
     } catch {
       toast.error('Failed to update project');
     }
@@ -70,7 +75,6 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
     try {
       await deleteProject(id);
       setProjects((prev) => prev.filter((p) => p.id !== id));
-      router.refresh();
       if (pathname.includes(`/project/${projectSlug}`)) {
         router.push('/');
       }
@@ -85,7 +89,7 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
       <div className="flex items-center gap-2.5 px-3 py-1">
         <Image
           src="/logo.png"
-          loading="lazy"
+          priority
           alt="SlashTask logo"
           width={24}
           height={24}
@@ -219,14 +223,14 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
   );
 }
 
-interface SidebarProps {
-  initialProjects: Project[];
-}
+type SidebarProps = {
+  projects: Project[];
+};
 
-export function Sidebar({ initialProjects }: SidebarProps) {
+export function Sidebar({ projects }: SidebarProps) {
   return (
     <aside className="border-sidebar-border bg-sidebar hidden w-64 shrink-0 border-r md:flex md:flex-col">
-      <SidebarContent initialProjects={initialProjects} />
+      <SidebarContent initialProjects={projects} />
     </aside>
   );
 }

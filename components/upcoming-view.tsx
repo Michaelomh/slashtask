@@ -11,22 +11,24 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
 import { DateGroup, OverdueGroup } from '@/components/date-group';
 import { buildDateGroups } from '@/lib/task-grouping';
 import { TaskItem } from '@/components/task-item';
-import { type Project, type Task } from '@/lib/types';
+import { Project, Task } from '@/lib/types';
 import { addDays, isBefore, max, parseISO, startOfDay } from 'date-fns';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 const DAYS_PER_PAGE = 7;
 const MIN_HORIZON_DAYS = 30;
 
-interface UpcomingViewProps {
+type UpcomingViewProps = {
   tasks: Task[];
   projects: Project[];
-}
+};
+
+const today = startOfDay(new Date());
+const defaultHorizon = addDays(today, MIN_HORIZON_DAYS);
 
 export function UpcomingView({
   tasks: initialTasks,
@@ -35,8 +37,9 @@ export function UpcomingView({
   const [tasks, setTasks] = useState(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const prevTasksRef = useRef<Task[]>(initialTasks);
+  const [visibleCount, setVisibleCount] = useState(DAYS_PER_PAGE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Keep local state in sync when the page re-renders (e.g. after router.refresh())
   useEffect(() => {
     setTasks(initialTasks);
   }, [initialTasks]);
@@ -48,15 +51,18 @@ export function UpcomingView({
     })
   );
 
-  const today = startOfDay(new Date());
-  const defaultHorizon = addDays(today, MIN_HORIZON_DAYS);
-
-  const overdueTasks = tasks
-    .filter(
-      (t) =>
-        !t.is_completed && t.due_date && isBefore(parseISO(t.due_date), today)
-    )
-    .sort((a, b) => a.due_date!.localeCompare(b.due_date!));
+  const overdueTasks = useMemo(() => {
+    return (
+      tasks
+        .filter(
+          (t) =>
+            !t.is_completed &&
+            t.due_date &&
+            isBefore(parseISO(t.due_date), today)
+        )
+        .sort((a, b) => a.due_date!.localeCompare(b.due_date!)) ?? []
+    );
+  }, [tasks]);
 
   const latestTaskDate = tasks.reduce<Date>((acc, t) => {
     if (!t.due_date || t.is_completed) return acc;
@@ -65,10 +71,10 @@ export function UpcomingView({
   }, defaultHorizon);
 
   const horizon = max([defaultHorizon, latestTaskDate]);
-  const allGroups = buildDateGroups(tasks, today, horizon);
+  const allGroups = useMemo(() => {
+    return buildDateGroups(tasks, today, horizon) ?? [];
+  }, [tasks, horizon]);
 
-  const [visibleCount, setVisibleCount] = useState(DAYS_PER_PAGE);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const hasMore = visibleCount < allGroups.length;
 
   useEffect(() => {
@@ -87,15 +93,6 @@ export function UpcomingView({
 
   const visibleGroups = allGroups.slice(0, visibleCount);
 
-  // ── helpers ──────────────────────────────────────────────────────────────
-  function getContainerId(taskId: string): string | null {
-    const t = tasks.find((t) => t.id === taskId);
-    if (!t || !t.due_date) return null;
-    if (isBefore(parseISO(t.due_date), today)) return 'overdue';
-    return t.due_date;
-  }
-
-  // ── drag handlers ─────────────────────────────────────────────────────────
   function handleDragStart({ active }: { active: { id: string | number } }) {
     const task = tasks.find((t) => t.id === active.id);
     setActiveTask(task ?? null);
@@ -149,7 +146,8 @@ export function UpcomingView({
 
     // Recalculate orders for all affected date groups
     const affectedDates = new Set([sourceContainerId, destContainerId]);
-    const reorderPayload: { id: string; order: number; due_date?: string }[] = [];
+    const reorderPayload: { id: string; order: number; due_date?: string }[] =
+      [];
 
     for (const date of affectedDates) {
       const groupTasks = updated.filter((t) => t.due_date === date);
@@ -159,7 +157,8 @@ export function UpcomingView({
           id: t.id,
           order: t.order,
         };
-        if (t.id === activeId && dueDateChanged) entry.due_date = destContainerId;
+        if (t.id === activeId && dueDateChanged)
+          entry.due_date = destContainerId;
         reorderPayload.push(entry);
       });
     }
@@ -172,10 +171,14 @@ export function UpcomingView({
     });
   }
 
-  // ── render ────────────────────────────────────────────────────────────────
   const activeProject = activeTask
     ? (projects.find((p) => p.id === activeTask.project_id) ?? null)
     : null;
+
+  const projectMap = useMemo(
+    () => new Map(projects.map((p) => [p.id, p])),
+    [projects]
+  );
 
   return (
     <DndContext
@@ -186,7 +189,7 @@ export function UpcomingView({
     >
       <OverdueGroup tasks={overdueTasks} projects={projects} />
       {visibleGroups.map((group) => (
-        <DateGroup key={group.date} group={group} projects={projects} />
+        <DateGroup key={group.date} group={group} projectMap={projectMap} />
       ))}
       {hasMore && <div ref={sentinelRef} className="h-8" aria-hidden="true" />}
 
