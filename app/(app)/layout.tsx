@@ -1,7 +1,8 @@
-import { MobileHeader } from '@/components/mobile-header';
-import { Sidebar } from '@/components/sidebar';
+import { MobileHeader } from '@/components/layout/mobile-header';
+import { Sidebar } from '@/components/layout/sidebar';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { Suspense } from 'react';
 
 export default async function AppLayout({
   children,
@@ -17,21 +18,28 @@ export default async function AppLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: projects }, { data: taskRows }] = await Promise.all([
-    supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', user!.id)
-      .eq('is_deleted', false)
-      .order('order', { ascending: true }),
-    supabase
-      .from('tasks')
-      .select('project_id')
-      .eq('user_id', user!.id)
-      .eq('is_deleted', false)
-      .eq('is_completed', false)
-      .not('project_id', 'is', null),
-  ]);
+  const [{ data: projects }, { data: taskRows }, { count: completedCount }] =
+    await Promise.all([
+      supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('is_deleted', false)
+        .order('order', { ascending: true }),
+      supabase
+        .from('tasks')
+        .select('project_id')
+        .eq('user_id', user!.id)
+        .eq('is_deleted', false)
+        .eq('is_completed', false)
+        .not('project_id', 'is', null),
+      supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .eq('is_deleted', false)
+        .eq('is_completed', true),
+    ]);
 
   const taskCountMap = (taskRows ?? []).reduce<Record<string, number>>(
     (acc, t) => {
@@ -48,9 +56,16 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <Sidebar initialProjects={projectList} />
+      <Suspense fallback={null}>
+        <Sidebar projects={projectList} completedCount={completedCount ?? 0} />
+      </Suspense>
       <div className="flex flex-1 flex-col overflow-hidden">
-        <MobileHeader initialProjects={projectList} />
+        <Suspense fallback={null}>
+          <MobileHeader
+            projects={projectList}
+            completedCount={completedCount ?? 0}
+          />
+        </Suspense>
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
       {modal}

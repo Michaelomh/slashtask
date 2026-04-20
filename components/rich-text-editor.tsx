@@ -17,20 +17,20 @@ import {
 import { useEffect, useRef } from 'react';
 import { Markdown } from 'tiptap-markdown';
 
-interface RichTextEditorProps {
+type RichTextEditorProps = {
   value: string;
   onChange: (markdown: string, plainText: string) => void;
   onBlur?: () => void;
   placeholder?: string;
   className?: string;
-}
+};
 
-interface ToolbarButtonProps {
+type ToolbarButtonProps = {
   onClick: () => void;
   active?: boolean;
   children: React.ReactNode;
   title: string;
-}
+};
 
 function ToolbarButton({
   onClick,

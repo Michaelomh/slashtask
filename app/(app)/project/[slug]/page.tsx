@@ -1,8 +1,7 @@
-import { DateGroup } from '@/components/date-group';
-import { groupTasksByDate } from '@/lib/task-grouping';
-import { type Task } from '@/lib/types';
+import { ProjectView } from '@/components/project-view';
+import { Project, Task } from '@/lib/types';
 import { createClient } from '@/utils/supabase/server';
-import type { Metadata } from 'next';
+import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 
@@ -80,25 +79,16 @@ export default async function ProjectPage({
         sub_tasks?.filter((s) => !s.is_deleted && s.is_completed).length ?? 0,
     })
   );
-  const projects = projectsResult.data ?? [];
-  const groups = groupTasksByDate(tasks);
+  const projects: Project[] = projectsResult.data ?? [];
 
   return (
-    <div className="mx-auto max-w-[800px] px-4 py-8">
+    <div className="mx-auto max-w-200 px-4 py-8">
       <div className="mb-6 flex items-center gap-2">
         <span className="text-2xl">{project.emoji}</span>
         <h1 className="text-xl font-semibold">{project.name}</h1>
       </div>
 
-      {groups.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No upcoming tasks in this project.
-        </p>
-      ) : (
-        groups.map((group) => (
-          <DateGroup key={group.date} group={group} projects={projects} />
-        ))
-      )}
+      <ProjectView tasks={tasks} projects={projects} />
     </div>
   );
 }

@@ -1,11 +1,14 @@
 import { UpcomingView } from '@/components/upcoming-view';
-import { type Task } from '@/lib/types';
+import { Task } from '@/lib/types';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { Metadata } from 'next/types';
 
 type RawTask = Task & {
   sub_tasks?: { id: string; is_completed: boolean; is_deleted: boolean }[];
 };
+
+export const metadata: Metadata = { title: 'Upcoming' };
 
 export default async function UpcomingPage() {
   const cookieStore = await cookies();
@@ -44,7 +47,7 @@ export default async function UpcomingPage() {
   const projects = projectsResult.data ?? [];
 
   return (
-    <div className="mx-auto max-w-[800px] px-4 py-8">
+    <div className="mx-auto max-w-200 px-4 py-8">
       <h1 className="mb-6 text-xl font-semibold">Upcoming</h1>
       <UpcomingView tasks={tasks} projects={projects} />
     </div>

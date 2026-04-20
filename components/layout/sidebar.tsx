@@ -1,22 +1,27 @@
 'use client';
 
-import { createProject, deleteProject, updateProject } from '@/app/actions/projects';
+import {
+  createProject,
+  deleteProject,
+  ProjectInput,
+  updateProject,
+} from '@/app/actions/projects';
 import { Badge } from '@/components/ui/badge';
-import { type Project } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { Project } from '@/lib/types';
+import { cn, toKebabCase } from '@/lib/utils';
 import {
   CalendarDays,
   CheckCircle2,
   CirclePlus,
-  MoreHorizontal,
+  PencilLine,
   Plus,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ProjectFormDialog } from './project-form-dialog';
+import { ProjectFormDialog } from '../project-form-dialog';
 
 const navLinks = [
   { href: '/task', label: 'New Task', icon: CirclePlus },
@@ -24,53 +29,65 @@ const navLinks = [
   { href: '/completed', label: 'Completed', icon: CheckCircle2 },
 ];
 
-interface SidebarContentProps {
+type SidebarContentProps = {
   initialProjects: Project[];
-}
+  completedCount: number;
+};
 
-export function SidebarContent({ initialProjects }: SidebarContentProps) {
+export function SidebarContent({
+  initialProjects,
+  completedCount,
+}: SidebarContentProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
 
-  async function handleCreate(
-    data: Omit<
-      Project,
-      'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
-    >
-  ) {
+  // This would update the project data whenever there is a change.
+  useEffect(() => {
+    setProjects(initialProjects);
+  }, [initialProjects]);
+
+  async function handleProjectCreate(data: ProjectInput) {
     try {
-      const created = await createProject({ ...data, order: projects.length + 1 });
+      const created = await createProject({
+        ...data,
+        order: projects.length + 1,
+      });
       setProjects((prev) => [...prev, created]);
-      router.refresh();
+      toast.success(`${created.name} project has been created.`);
     } catch {
       toast.error('Failed to create project');
     }
   }
 
-  async function handleUpdate(
-    id: string,
-    data: Omit<
-      Project,
-      'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
-    >
-  ) {
+  async function handleProjectUpdate(data: ProjectInput) {
     try {
-      const updated = await updateProject(id, data);
-      setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
-      router.refresh();
+      if (editTarget) {
+        const updated = await updateProject(editTarget.id, data);
+        setProjects((prev) =>
+          prev.map((p) => (p.id === editTarget.id ? updated : p))
+        );
+        if (
+          pathname.includes(`/project/${editTarget.slug}`) &&
+          editTarget.name !== data.name
+        ) {
+          router.push(`/project/${toKebabCase(data.name)}`);
+        }
+        toast.success(`${updated.name} project has been successfully updated.`);
+      }
     } catch {
       toast.error('Failed to update project');
     }
   }
 
-  async function handleDelete(id: string, projectSlug: string) {
+  async function handleProjectDelete(id: string, projectSlug: string) {
     try {
-      await deleteProject(id);
+      const deleted = await deleteProject(id);
       setProjects((prev) => prev.filter((p) => p.id !== id));
-      router.refresh();
+
+      toast.success(`${deleted.name} project has been successfully deleted.`);
       if (pathname.includes(`/project/${projectSlug}`)) {
         router.push('/');
       }
@@ -82,17 +99,21 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
   return (
     <div className="flex h-full flex-col gap-4 px-3 py-4">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-3 py-1">
-        <Image
-          src="/logo.png"
-          loading="lazy"
-          alt="SlashTask logo"
-          width={24}
-          height={24}
-          className="shrink-0"
-        />
-        <span className="text-sm font-semibold tracking-tight">SlashTask</span>
-      </div>
+      <Link href="/">
+        <div className="flex items-center gap-2.5 px-3 py-1">
+          <Image
+            src="/logo.png"
+            priority
+            alt="SlashTask logo"
+            width={24}
+            height={24}
+            className="shrink-0"
+          />
+          <span className="text-sm font-semibold tracking-tight">
+            SlashTask
+          </span>
+        </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex flex-col gap-0.5">
@@ -111,6 +132,15 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
             >
               <Icon className="size-4 shrink-0" />
               {label}
+
+              {label === 'Completed' && (
+                <Badge
+                  variant="secondary"
+                  className="ml-auto h-5 min-w-5 shrink-0 px-1.5 text-xs group-hover/project:hidden"
+                >
+                  {completedCount}
+                </Badge>
+              )}
             </Link>
           );
         })}
@@ -123,14 +153,14 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
         {/* Heading row */}
         <div className="flex items-center px-3">
           <p className="text-sidebar-foreground/50 flex-1 text-xs font-semibold tracking-wider uppercase">
-            My Projects
+            Projects
           </p>
           <button
             onClick={() => setCreateOpen(true)}
-            className="text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground rounded-md p-0.5 transition-colors"
+            className="text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground cursor-pointer rounded-md p-0.5 transition-colors"
             aria-label="Add project"
           >
-            <Plus className="size-3.5" />
+            <Plus className="size-4" />
           </button>
         </div>
 
@@ -156,8 +186,8 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
                   className={cn(
                     'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
                     isActive
-                      ? 'bg-[var(--project-bg-active)] text-[var(--project-color)]'
-                      : 'text-sidebar-foreground hover:bg-[var(--project-bg-hover)] hover:text-[var(--project-color)]'
+                      ? 'bg-(--project-bg-active) text-(--project-color)'
+                      : 'text-sidebar-foreground hov hover:bg-(--project-bg-hover) hover:text-(--project-color)'
                   )}
                 >
                   <span className="shrink-0 text-base leading-none">
@@ -165,17 +195,16 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
                   </span>
                   <span className="flex-1 truncate">{project.name}</span>
 
-                  {/* More button — shown on hover */}
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       setEditTarget(project);
                     }}
-                    className="ml-auto hidden size-5 shrink-0 items-center justify-center rounded opacity-60 transition-colors group-hover/project:flex hover:opacity-100"
+                    className="ml-auto hidden size-5 shrink-0 items-center justify-center rounded opacity-60 transition-colors group-hover/project:flex hover:cursor-pointer hover:opacity-100"
                     aria-label={`Edit ${project.name}`}
                   >
-                    <MoreHorizontal className="size-3.5" />
+                    <PencilLine className="size-3.5" />
                   </button>
 
                   {(project.task_count ?? 0) > 0 && (
@@ -198,35 +227,38 @@ export function SidebarContent({ initialProjects }: SidebarContentProps) {
         open={createOpen}
         onOpenChange={setCreateOpen}
         mode="create"
-        onSave={handleCreate}
+        onSave={handleProjectCreate}
       />
 
       {/* Edit dialog */}
       {editTarget && (
         <ProjectFormDialog
-          key={editTarget.id}
           open={!!editTarget}
           onOpenChange={(open) => {
             if (!open) setEditTarget(null);
           }}
           mode="edit"
-          initialData={editTarget}
-          onSave={(data) => handleUpdate(editTarget.id, data)}
-          onDelete={() => handleDelete(editTarget.id, editTarget.slug)}
+          data={editTarget}
+          onSave={(data) => handleProjectUpdate(data)}
+          onDelete={() => handleProjectDelete(editTarget.id, editTarget.slug)}
         />
       )}
     </div>
   );
 }
 
-interface SidebarProps {
-  initialProjects: Project[];
-}
+type SidebarProps = {
+  projects: Project[];
+  completedCount: number;
+};
 
-export function Sidebar({ initialProjects }: SidebarProps) {
+export function Sidebar({ projects, completedCount }: SidebarProps) {
   return (
     <aside className="border-sidebar-border bg-sidebar hidden w-64 shrink-0 border-r md:flex md:flex-col">
-      <SidebarContent initialProjects={initialProjects} />
+      <SidebarContent
+        initialProjects={projects}
+        completedCount={completedCount}
+      />
     </aside>
   );
 }

@@ -1,44 +1,48 @@
 'use server';
 
-import { type Project } from '@/lib/types';
+import { Project } from '@/lib/types';
 import { toKebabCase } from '@/lib/utils';
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { getDbClient } from '@/utils/supabase/action-client';
+import { revalidatePath } from 'next/cache';
 
-type ProjectInput = Pick<Project, 'name' | 'emoji' | 'color' | 'order'>;
+export type ProjectInput = {
+  name: string;
+  color?: string;
+  emoji?: string;
+  order?: number;
+};
 
 export async function createProject(input: ProjectInput): Promise<Project> {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
+  const { supabase, user } = await getDbClient();
 
   const { name, emoji, color, order } = input;
 
   const { data, error } = await supabase
     .from('projects')
-    .insert({ name, slug: toKebabCase(name), emoji, color, order, user_id: user.id })
+    .insert({
+      name,
+      slug: toKebabCase(name),
+      emoji,
+      color,
+      order,
+      user_id: user.id,
+    })
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('[createProject]', error);
+    throw new Error('Failed to create project');
+  }
+  revalidatePath('/', 'layout');
   return data as Project;
 }
 
 export async function updateProject(
   id: string,
-  input: Partial<ProjectInput>
+  input: ProjectInput
 ): Promise<Project> {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
+  const { supabase, user } = await getDbClient();
 
   const body: Record<string, unknown> = { ...input };
   if (input.name) body.slug = toKebabCase(input.name);
@@ -51,30 +55,35 @@ export async function updateProject(
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('[updateProject]', error);
+    throw new Error('Failed to update project');
+  }
+  revalidatePath('/', 'layout');
   return data as Project;
 }
 
-export async function deleteProject(id: string): Promise<void> {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+export async function deleteProject(id: string): Promise<Project> {
+  const { supabase, user } = await getDbClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-
-  await supabase
+  const { error: taskError } = await supabase
     .from('tasks')
     .update({ is_deleted: true })
     .eq('project_id', id)
     .eq('user_id', user.id);
 
-  const { error } = await supabase
+  if (taskError) throw new Error('Failed to delete project tasks');
+
+  const { data, error } = await supabase
     .from('projects')
     .update({ is_deleted: true })
     .eq('id', id)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .select()
+    .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error('Failed to delete project');
+  revalidatePath('/', 'layout');
+
+  return data as Project;
 }

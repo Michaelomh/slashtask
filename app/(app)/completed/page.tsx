@@ -1,7 +1,10 @@
 import { TaskItem } from '@/components/task-item';
-import { type Task } from '@/lib/types';
+import { Task } from '@/lib/types';
 import { createClient } from '@/utils/supabase/server';
+import { Metadata } from 'next';
 import { cookies } from 'next/headers';
+
+export const metadata: Metadata = { title: 'Completed' };
 
 type RawTask = Task & {
   sub_tasks?: { id: string; is_completed: boolean; is_deleted: boolean }[];

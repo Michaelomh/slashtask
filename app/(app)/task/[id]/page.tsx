@@ -1,8 +1,21 @@
 import { TaskDetailModal } from '@/components/task-detail-modal';
-import { createClient } from '@/utils/supabase/server';
-import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
+import { Task, Project } from '@/lib/types';
+import { getDbClient } from '@/utils/supabase/action-client';
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
+
+const getTask = cache(async (id: string) => {
+  const { supabase, user } = await getDbClient();
+  const { data } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .eq('is_deleted', false)
+    .single();
+  return data as Task | null;
+});
 
 export async function generateMetadata({
   params,
@@ -10,17 +23,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-
-  const { data } = await supabase
-    .from('tasks')
-    .select('title')
-    .eq('id', id)
-    .eq('is_deleted', false)
-    .single();
-
-  return { title: data?.title ?? 'Task' };
+  const task = await getTask(id);
+  return { title: task?.title ?? 'Task' };
 }
 
 export default async function TaskDetailPage({
@@ -29,22 +33,34 @@ export default async function TaskDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const { supabase, user } = await getDbClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [task, { data: projects }, { data: subTasks }] = await Promise.all([
+    getTask(id),
+    supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .order('order', { ascending: true }),
+    supabase
+      .from('tasks')
+      .select('*')
+      .eq('parent_task_id', id)
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .order('due_date', { ascending: true })
+      .order('order', { ascending: true }),
+  ]);
 
-  const { data } = await supabase
-    .from('tasks')
-    .select('id')
-    .eq('id', id)
-    .eq('user_id', user!.id)
-    .eq('is_deleted', false)
-    .single();
+  if (!task) notFound();
 
-  if (!data) notFound();
-
-  return <TaskDetailModal id={id} />;
+  return (
+    <TaskDetailModal
+      id={id}
+      task={task}
+      projects={(projects ?? []) as Project[]}
+      subTasks={(subTasks ?? []) as Task[]}
+    />
+  );
 }

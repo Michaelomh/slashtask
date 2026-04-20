@@ -3,17 +3,17 @@
 import { cn } from '@/lib/utils';
 import { useEffect, useRef } from 'react';
 
-export interface DropdownItem {
+export type DropdownItem = {
   id: string;
   label: string;
   icon?: React.ReactNode;
-}
+};
 
-interface ShortcutDropdownProps {
+type ShortcutDropdownProps = {
   items: DropdownItem[];
   highlightIndex: number;
   onSelect: (index: number) => void;
-}
+};
 
 export function ShortcutDropdown({
   items,
@@ -41,10 +41,12 @@ export function ShortcutDropdown({
   return (
     <div
       ref={listRef}
+      role="listbox"
       className="border-border bg-popover absolute top-full left-0 z-50 mt-1 max-h-48 w-56 overflow-y-auto rounded-md border shadow-md"
     >
       {items.map((item, i) => (
         <div
+          role="option"
           key={item.id}
           className={cn(
             'flex cursor-pointer items-center gap-2 px-3 py-2 text-sm',

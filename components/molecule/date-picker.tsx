@@ -11,11 +11,11 @@ import { format, isToday, isTomorrow } from 'date-fns';
 import { CalendarIcon, X } from 'lucide-react';
 import { useState } from 'react';
 
-interface DatePickerProps {
+type DatePickerProps = {
   value: Date | null;
   onChange: (date: Date | null) => void;
   className?: string;
-}
+};
 
 function formatDateLabel(date: Date): string {
   if (isToday(date)) return 'Today';

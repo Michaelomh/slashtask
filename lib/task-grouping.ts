@@ -1,4 +1,4 @@
-import { type Task } from '@/lib/types';
+import { Task } from '@/lib/types';
 import { format, isPast, isToday, isTomorrow, startOfDay } from 'date-fns';
 
 export type TaskGroup = {
@@ -14,8 +14,11 @@ export function formatDateHeading(dateStr: string): {
   const overdue = isPast(startOfDay(date)) && !isToday(date);
 
   let relative = '';
-  if (isToday(date)) relative = 'Today · ';
-  else if (isTomorrow(date)) relative = 'Tomorrow · ';
+  if (isToday(date)) {
+    relative = 'Today · ';
+  } else if (isTomorrow(date)) {
+    relative = 'Tomorrow · ';
+  }
 
   const label = `${format(date, 'd MMM')} · ${relative}${format(date, 'EEEE')}`;
   return { label, isOverdue: overdue };
