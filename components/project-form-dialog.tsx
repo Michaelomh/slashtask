@@ -1,15 +1,6 @@
 'use client';
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { ProjectInput } from '@/app/actions/projects';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -18,6 +9,7 @@ import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 
 const EMOJI_OPTIONS = [
   '💼',
@@ -77,16 +69,13 @@ const COLOR_OPTIONS = [
   '#34495e',
 ];
 
-type ProjectPayload = Omit<
-  Project,
-  'slug' | 'is_deleted' | 'user_id' | 'created_at' | 'updated_at'
->;
+type ProjectPayload = ProjectInput & { id?: string };
 
 type ProjectFormDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';
-  initialData?: Project;
+  data?: Project;
   onSave: (data: ProjectPayload) => Promise<void>;
   onDelete?: () => Promise<void>;
 };
@@ -95,13 +84,13 @@ export function ProjectFormDialog({
   open,
   onOpenChange,
   mode,
-  initialData,
+  data,
   onSave,
   onDelete,
 }: ProjectFormDialogProps) {
-  const [name, setName] = useState(initialData?.name ?? '');
-  const [emoji, setEmoji] = useState(initialData?.emoji ?? '📁');
-  const [color, setColor] = useState(initialData?.color ?? '#3498db');
+  const [name, setName] = useState(data?.name ?? '');
+  const [emoji, setEmoji] = useState(data?.emoji ?? '📁');
+  const [color, setColor] = useState(data?.color ?? '#3498db');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -120,11 +109,11 @@ export function ProjectFormDialog({
     if (!name.trim()) return;
     setSaving(true);
     await onSave({
-      id: mode === 'edit' && initialData ? initialData.id : undefined,
+      id: mode === 'edit' && data ? data.id : undefined,
       name: name.trim(),
       emoji,
       color,
-      order: initialData?.order ?? 0,
+      order: data?.order ?? 0,
     });
     setSaving(false);
     if (mode === 'create') resetForm();
@@ -141,9 +130,9 @@ export function ProjectFormDialog({
 
   function handleOpenChange(next: boolean) {
     if (next) {
-      setName(initialData?.name ?? '');
-      setEmoji(initialData?.emoji ?? '📁');
-      setColor(initialData?.color ?? '#3498db');
+      setName(data?.name ?? '');
+      setEmoji(data?.emoji ?? '📁');
+      setColor(data?.color ?? '#3498db');
     }
     onOpenChange(next);
   }
@@ -155,7 +144,7 @@ export function ProjectFormDialog({
           showCloseButton={false}
           className="gap-0 p-0 sm:max-w-sm"
         >
-          {/* ── Form ── */}
+          {/* Form */}
           <div className="flex flex-col gap-5 p-5">
             <h2 className="font-semibold">
               {mode === 'create' ? 'Add project' : 'Edit project'}
@@ -262,34 +251,15 @@ export function ProjectFormDialog({
         </DialogContent>
       </Dialog>
 
-      {/* ── Confirm delete ── */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Delete &ldquo;{initialData?.name}&rdquo;?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              All tasks under this project will be permanently deleted. This
-              cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel size="sm" disabled={deleting}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? <Spinner size="sm" className="mr-1.5" /> : null}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationDialog
+        showDeleteConfirmationDialog={showDeleteConfirm}
+        setShowDeleteConfirmationDialog={setShowDeleteConfirm}
+        title="Are you sure?"
+        description="All tasks under this project will be permanently deleted. This
+            cannot be undone."
+        isDeleting={deleting}
+        handleDelete={handleDelete}
+      />
     </>
   );
 }

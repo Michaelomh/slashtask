@@ -16,9 +16,10 @@ function usePageTitle() {
 
 type MobileHeaderProps = {
   projects: Project[];
+  completedCount: number;
 };
 
-export function MobileHeader({ projects }: MobileHeaderProps) {
+export function MobileHeader({ projects, completedCount }: MobileHeaderProps) {
   const title = usePageTitle();
 
   return (
@@ -29,7 +30,10 @@ export function MobileHeader({ projects }: MobileHeaderProps) {
           <span className="sr-only">Open menu</span>
         </SheetTrigger>
         <SheetContent side="left" className="bg-sidebar w-64 p-0">
-          <SidebarContent initialProjects={projects} />
+          <SidebarContent
+            initialProjects={projects}
+            completedCount={completedCount}
+          />
         </SheetContent>
       </Sheet>
       <span className="text-sm font-semibold">{title}</span>

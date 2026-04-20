@@ -7,7 +7,7 @@ import {
 } from '@dnd-kit/core';
 import { Project, Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { isPast, startOfDay } from 'date-fns';
+import { isPast, startOfDay, addDays } from 'date-fns';
 import { CheckCircle2, Circle, GripVertical, ListTree } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -37,7 +37,7 @@ export function TaskItem({ task, project, dragHandle }: TaskItemProps) {
 
   const isOverdue =
     task.due_date !== null &&
-    isPast(startOfDay(new Date(task.due_date + 'T00:00:00'))) &&
+    isPast(startOfDay(addDays(new Date(task.due_date), 1))) &&
     !completed;
 
   function fireConfetti() {

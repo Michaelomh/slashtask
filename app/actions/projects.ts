@@ -1,11 +1,16 @@
 'use server';
 
-import { type Project } from '@/lib/types';
+import { Project } from '@/lib/types';
 import { toKebabCase } from '@/lib/utils';
 import { getDbClient } from '@/utils/supabase/action-client';
 import { revalidatePath } from 'next/cache';
 
-type ProjectInput = Pick<Project, 'name' | 'emoji' | 'color' | 'order'>;
+export type ProjectInput = {
+  name: string;
+  color?: string;
+  emoji?: string;
+  order?: number;
+};
 
 export async function createProject(input: ProjectInput): Promise<Project> {
   const { supabase, user } = await getDbClient();
@@ -14,7 +19,14 @@ export async function createProject(input: ProjectInput): Promise<Project> {
 
   const { data, error } = await supabase
     .from('projects')
-    .insert({ name, slug: toKebabCase(name), emoji, color, order, user_id: user.id })
+    .insert({
+      name,
+      slug: toKebabCase(name),
+      emoji,
+      color,
+      order,
+      user_id: user.id,
+    })
     .select()
     .single();
 
@@ -28,7 +40,7 @@ export async function createProject(input: ProjectInput): Promise<Project> {
 
 export async function updateProject(
   id: string,
-  input: Partial<ProjectInput>
+  input: ProjectInput
 ): Promise<Project> {
   const { supabase, user } = await getDbClient();
 
@@ -51,7 +63,7 @@ export async function updateProject(
   return data as Project;
 }
 
-export async function deleteProject(id: string): Promise<void> {
+export async function deleteProject(id: string): Promise<Project> {
   const { supabase, user } = await getDbClient();
 
   const { error: taskError } = await supabase
@@ -62,12 +74,16 @@ export async function deleteProject(id: string): Promise<void> {
 
   if (taskError) throw new Error('Failed to delete project tasks');
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('projects')
     .update({ is_deleted: true })
     .eq('id', id)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .select()
+    .single();
 
   if (error) throw new Error('Failed to delete project');
   revalidatePath('/', 'layout');
+
+  return data as Project;
 }

@@ -1,17 +1,7 @@
 'use client';
 
 import { createTask } from '@/app/actions/tasks';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { DatePicker } from '@/components/date-picker';
+import { DatePicker } from '@/components/molecule/date-picker';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
@@ -36,6 +26,7 @@ import { parseDateToken, removeTriggerToken } from '@/lib/shortcut-parser';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { DiscardConfirmationDialog } from './molecule/discard-confirmation-dialog';
 
 const TOOLBAR_CLS =
   'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors';
@@ -129,6 +120,7 @@ export function NewTaskModal({ projects }: NewTaskModalProps) {
           : null,
       });
       router.back();
+      router.refresh();
     } catch {
       toast.error('Failed to create task');
       setSaving(false);
@@ -393,30 +385,11 @@ export function NewTaskModal({ projects }: NewTaskModalProps) {
         </DialogContent>
       </Dialog>
 
-      {/* ── Confirm discard ── */}
-      <AlertDialog
-        open={showDiscardConfirm}
-        onOpenChange={setShowDiscardConfirm}
-      >
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes. Are you sure you want to discard them?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel size="sm">Keep editing</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              size="sm"
-              onClick={handleClose}
-            >
-              Discard
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DiscardConfirmationDialog
+        showDiscardConfirmationDialog={showDiscardConfirm}
+        setShowDiscardConfirmationDialog={setShowDiscardConfirm}
+        handleClose={handleClose}
+      />
     </>
   );
 }

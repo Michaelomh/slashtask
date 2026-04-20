@@ -44,17 +44,19 @@ export function SortableTaskItem({
   );
 }
 
-/** Used in OverdueGroup — draggable only, not sortable within overdue. */
+/** Used in OverdueGroup/NoDueDateGroup — draggable only, not sortable within group. */
 export function DraggableTaskItem({
   task,
   project,
+  containerId = 'overdue',
 }: {
   task: Task;
   project: Project | null;
+  containerId?: string;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
-    data: { type: 'task', containerId: 'overdue' },
+    data: { type: 'task', containerId },
   });
 
   return (

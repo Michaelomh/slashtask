@@ -1,16 +1,6 @@
 'use client';
 
-import { DatePicker } from '@/components/date-picker';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { DatePicker } from '@/components/molecule/date-picker';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
@@ -46,6 +36,7 @@ import { createTask, deleteTask, updateTask } from '@/app/actions/tasks';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 
 const TOOLBAR_CLS =
   'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors';
@@ -734,31 +725,15 @@ export function TaskDetailModal({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will also delete {subTasks.length} sub-task
-              {subTasks.length !== 1 ? 's' : ''}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel size="sm" disabled={deleting}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? <Spinner size="sm" className="mr-1.5" /> : null}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationDialog
+        showDeleteConfirmationDialog={showDeleteConfirm}
+        setShowDeleteConfirmationDialog={setShowDeleteConfirm}
+        title="Are you sure?"
+        description={`This will also delete ${subTasks.length} sub-task
+              ${subTasks.length !== 1 ? 's' : ''}.`}
+        isDeleting={deleting}
+        handleDelete={handleDelete}
+      />
     </>
   );
 }

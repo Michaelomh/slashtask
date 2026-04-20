@@ -14,7 +14,7 @@ type CreateTaskInput = {
   due_date?: string | null;
   parent_task_id?: string | null;
   order?: number;
-}
+};
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
   const { supabase, user } = await getDbClient();
@@ -54,7 +54,7 @@ type UpdateTaskInput = {
   due_date?: string | null;
   project_id?: string | null;
   completed_at?: string | null;
-}
+};
 
 export async function updateTask(
   id: string,
@@ -87,7 +87,7 @@ type ReorderItem = {
   id: string;
   order: number;
   due_date?: string | null;
-}
+};
 
 export async function deleteTask(id: string): Promise<void> {
   const { supabase, user } = await getDbClient();
