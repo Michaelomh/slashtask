@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { RichTextEditor } from '@/components/rich-text-editor';
-import { TaskToolbar } from '@/components/task-toolbar';
+import { RichTextEditor } from '@/components/molecule/rich-text-editor';
+import { TaskToolbar } from '@/components/molecule/task-toolbar';
 import { TitleInput } from '@/components/title-input';
 import { useEffortShortcut } from '@/hooks/use-effort-shortcut';
 import { useProjectShortcut } from '@/hooks/use-project-shortcut';

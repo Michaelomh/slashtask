@@ -1,4 +1,4 @@
-import { ProjectView } from '@/components/project-view';
+import { ProjectView } from '@/components/page/project-view';
 import { Project, Task } from '@/lib/types';
 import { createClient } from '@/utils/supabase/server';
 import { Metadata } from 'next';

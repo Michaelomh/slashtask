@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Markdown } from 'tiptap-markdown';
-import { Separator } from './ui/separator';
+import { Separator } from '../ui/separator';
 
 type RichTextEditorProps = {
   value: string;

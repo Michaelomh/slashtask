@@ -16,7 +16,7 @@ import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Flag, Inbox, Zap } from 'lucide-react';
 import { RefObject, useEffect, useRef, useState } from 'react';
-import { Button } from './ui/button';
+import { Button } from '../ui/button';
 
 const TOOLBAR_CLS =
   'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors cursor-pointer';
@@ -107,13 +107,14 @@ export function TaskToolbar({
             variant="outline"
             size="sm"
             onClick={() => setIsProjectOpen((v) => !v)}
+            className="max-w-40"
           >
             {project ? (
               <>
                 <span className="font-bold" style={{ color: project.color }}>
                   {project.emoji}
                 </span>
-                {project.name}
+                <span className="truncate">{project.name}</span>
               </>
             ) : (
               'No Project'

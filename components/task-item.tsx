@@ -16,7 +16,15 @@ import {
 import { Project, Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isPast, startOfDay, addDays } from 'date-fns';
-import { CheckCircle2, Circle, Copy, GripVertical, ListTree, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  Circle,
+  Copy,
+  GripVertical,
+  ListTree,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -42,7 +50,12 @@ type TaskItemProps = {
   variant?: 'active' | 'completed';
 };
 
-export function TaskItem({ task, project, dragHandle, variant = 'active' }: TaskItemProps) {
+export function TaskItem({
+  task,
+  project,
+  dragHandle,
+  variant = 'active',
+}: TaskItemProps) {
   const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -200,11 +213,11 @@ export function TaskItem({ task, project, dragHandle, variant = 'active' }: Task
 
               {/* Project tag */}
               {project && (
-                <span className="text-muted-foreground ml-auto flex shrink-0 items-center gap-1 text-xs">
+                <span className="text-muted-foreground ml-auto flex max-w-20 shrink-0 items-center gap-1 text-xs">
                   <span className="font-bold" style={{ color: project.color }}>
                     {project.emoji}
                   </span>
-                  {project.name}
+                  <span className="truncate">{project.name}</span>
                 </span>
               )}
             </Link>

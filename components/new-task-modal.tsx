@@ -3,8 +3,8 @@
 import { createTask } from '@/app/actions/tasks';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { RichTextEditor } from '@/components/rich-text-editor';
-import { TaskToolbar } from '@/components/task-toolbar';
+import { RichTextEditor } from '@/components/molecule/rich-text-editor';
+import { TaskToolbar } from '@/components/molecule/task-toolbar';
 import { Spinner } from '@/components/ui/spinner';
 import { Project } from '@/lib/types';
 import { format } from 'date-fns';
@@ -36,8 +36,8 @@ export function NewTaskModal({ projects }: NewTaskModalProps) {
   const [descriptionPlain, setDescriptionPlain] = useState('');
   const [pickerDate, setPickerDate] = useState<Date | null>(initialDate);
   const [lastSource, setLastSource] = useState<'picker' | 'shortcut'>('picker');
-  const [priority, setPriority] = useState<number>(4);
-  const [effort, setEffort] = useState<number>(2);
+  const [priority, setPriority] = useState<number>(3);
+  const [effort, setEffort] = useState<number>(5);
   const [project, setProject] = useState<Project | null>(null);
   const [saving, setSaving] = useState(false);
 

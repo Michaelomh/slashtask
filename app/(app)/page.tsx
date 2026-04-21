@@ -1,4 +1,4 @@
-import { UpcomingView } from '@/components/upcoming-view';
+import { UpcomingView } from '@/components/page/upcoming-view';
 import { Task } from '@/lib/types';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';

@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { RichTextEditor } from '@/components/rich-text-editor';
+import { RichTextEditor } from '@/components/molecule/rich-text-editor';
 import { Spinner } from '@/components/ui/spinner';
 import { PRIORITIES } from '@/lib/enums';
 import { Project, Task } from '@/lib/types';
