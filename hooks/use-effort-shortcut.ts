@@ -8,6 +8,7 @@ interface EffortItem {
   matches: string[];
 }
 
+// TODO: see if we can link to enums.tsx
 const EFFORT_ITEMS: EffortItem[] = [
   {
     id: '1',
@@ -59,12 +60,12 @@ export function useEffortShortcut() {
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightIndex((i) => Math.min(i + 1, filteredItems.length - 1));
+      setHighlightIndex((i) => (i + 1) % filteredItems.length);
       return { consumed: true };
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightIndex((i) => Math.max(i - 1, 0));
+      setHighlightIndex((i) => (i - 1 + filteredItems.length) % filteredItems.length);
       return { consumed: true };
     }
     if (e.key === 'Enter') {
@@ -97,6 +98,7 @@ export function useEffortShortcut() {
 
   return {
     isOpen,
+    setIsOpen,
     filteredItems,
     highlightIndex,
     onInputChange,

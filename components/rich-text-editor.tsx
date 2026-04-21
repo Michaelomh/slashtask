@@ -14,13 +14,15 @@ import {
   List,
   ListOrdered,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Markdown } from 'tiptap-markdown';
+import { Separator } from './ui/separator';
 
 type RichTextEditorProps = {
   value: string;
   onChange: (markdown: string, plainText: string) => void;
   onBlur?: () => void;
+  onFocus?: () => void;
   placeholder?: string;
   className?: string;
 };
@@ -47,7 +49,7 @@ function ToolbarButton({
         onClick();
       }}
       className={cn(
-        'flex h-6 w-6 items-center justify-center rounded transition-colors',
+        'flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors',
         active
           ? 'bg-accent text-accent-foreground'
           : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -62,10 +64,12 @@ export function RichTextEditor({
   value,
   onChange,
   onBlur,
+  onFocus,
   placeholder = 'Description',
   className,
 }: RichTextEditorProps) {
   const lastMarkdown = useRef(value);
+  const [isEditing, setEditing] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -81,10 +85,15 @@ export function RichTextEditor({
     content: value,
     editorProps: {
       attributes: {
-        class: 'tiptap-content',
+        class: `tiptap-content ${(!isEditing || value.length <= 0) && 'h-10'}`,
       },
     },
+    onFocus() {
+      setEditing(true);
+      onFocus?.();
+    },
     onBlur() {
+      setEditing(false);
       onBlur?.();
     },
     onUpdate({ editor }) {
@@ -104,88 +113,106 @@ export function RichTextEditor({
   }, [value, editor]);
 
   return (
-    <div className={cn('flex flex-col', className)}>
-      {/* Toolbar */}
-      <div className="mb-1 flex items-center gap-0.5">
-        <ToolbarButton
-          title="Bold"
-          active={editor?.isActive('bold')}
-          onClick={() => editor?.chain().focus().toggleBold().run()}
-        >
-          <Bold className="size-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          title="Italic"
-          active={editor?.isActive('italic')}
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
-        >
-          <Italic className="size-3.5" />
-        </ToolbarButton>
-
-        <div className="bg-border mx-1 h-4 w-px" />
-
-        <ToolbarButton
-          title="Heading 1"
-          active={editor?.isActive('heading', { level: 1 })}
-          onClick={() =>
-            editor?.chain().focus().toggleHeading({ level: 1 }).run()
-          }
-        >
-          <Heading1 className="size-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          title="Heading 2"
-          active={editor?.isActive('heading', { level: 2 })}
-          onClick={() =>
-            editor?.chain().focus().toggleHeading({ level: 2 }).run()
-          }
-        >
-          <Heading2 className="size-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          title="Heading 3"
-          active={editor?.isActive('heading', { level: 3 })}
-          onClick={() =>
-            editor?.chain().focus().toggleHeading({ level: 3 }).run()
-          }
-        >
-          <Heading3 className="size-3.5" />
-        </ToolbarButton>
-
-        <div className="bg-border mx-1 h-4 w-px" />
-
-        <ToolbarButton
-          title="Bullet list"
-          active={editor?.isActive('bulletList')}
-          onClick={() => editor?.chain().focus().toggleBulletList().run()}
-        >
-          <List className="size-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          title="Ordered list"
-          active={editor?.isActive('orderedList')}
-          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-        >
-          <ListOrdered className="size-3.5" />
-        </ToolbarButton>
-
-        <div className="bg-border mx-1 h-4 w-px" />
-
-        <ToolbarButton
-          title="Inline code"
-          active={editor?.isActive('code')}
-          onClick={() => editor?.chain().focus().toggleCode().run()}
-        >
-          <Code className="size-3.5" />
-        </ToolbarButton>
-      </div>
-
+    <div
+      className={cn(
+        'flex flex-col',
+        isEditing ? 'rounded-md border p-2' : 'h-10',
+        value.length > 0 && 'h-auto',
+        className
+      )}
+    >
       {/* Editor */}
       <EditorContent editor={editor} />
+
+      {/* Toolbar */}
+      {isEditing && (
+        <div className="mt-3 mb-1 flex items-center gap-0.5">
+          <ToolbarButton
+            title="Bold"
+            active={editor?.isActive('bold')}
+            onClick={() => editor?.chain().focus().toggleBold().run()}
+          >
+            <Bold className="size-4" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            title="Italic"
+            active={editor?.isActive('italic')}
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+          >
+            <Italic className="size-4" />
+          </ToolbarButton>
+
+          <Separator
+            orientation="vertical"
+            className="bg-border mx-1 h-4 w-px"
+          />
+
+          <ToolbarButton
+            title="Heading 1"
+            active={editor?.isActive('heading', { level: 1 })}
+            onClick={() =>
+              editor?.chain().focus().toggleHeading({ level: 1 }).run()
+            }
+          >
+            <Heading1 className="size-4" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            title="Heading 2"
+            active={editor?.isActive('heading', { level: 2 })}
+            onClick={() =>
+              editor?.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+          >
+            <Heading2 className="size-4" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            title="Heading 3"
+            active={editor?.isActive('heading', { level: 3 })}
+            onClick={() =>
+              editor?.chain().focus().toggleHeading({ level: 3 }).run()
+            }
+          >
+            <Heading3 className="size-4" />
+          </ToolbarButton>
+
+          <Separator
+            orientation="vertical"
+            className="bg-border mx-1 h-4 w-px"
+          />
+
+          <ToolbarButton
+            title="Bullet list"
+            active={editor?.isActive('bulletList')}
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          >
+            <List className="size-4" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            title="Ordered list"
+            active={editor?.isActive('orderedList')}
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          >
+            <ListOrdered className="size-4" />
+          </ToolbarButton>
+
+          <Separator
+            orientation="vertical"
+            className="bg-border mx-1 h-4 w-px"
+          />
+
+          <ToolbarButton
+            title="Inline code"
+            active={editor?.isActive('code')}
+            onClick={() => editor?.chain().focus().toggleCode().run()}
+          >
+            <Code className="size-4" />
+          </ToolbarButton>
+        </div>
+      )}
     </div>
   );
 }

@@ -136,6 +136,7 @@ export function TodayGroup({ group, projectMap }: DateGroupProps) {
     <div className="mb-6">
       <div className="mb-3 flex items-center gap-2 rounded-2xl">
         <h2 className="text-foreground text-sm font-semibold">{label}</h2>
+        <div className="bg-border h-px flex-1" />
       </div>
 
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>

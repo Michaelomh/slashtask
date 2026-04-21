@@ -56,8 +56,8 @@ SlashTask is a personal web-based task manager built to replace Todoist. Single-
 | description_text | varchar(500)                      | plain text, stripped of markdown, max 500 chars |
 | project_id       | uuid FK → projects                | nullable                                        |
 | parent_task_id   | uuid FK → tasks ON DELETE CASCADE | nullable, for sub-tasks (one level deep only)   |
-| priority         | int                               | 1=low, 2=medium, 3=high, 4=urgent               |
-| effort           | int                               | 1–4                                             |
+| priority         | int                               | 0=low, 1=medium, 2=high, 3=No priority          |
+| effort           | int                               | 0=small, 1=medium,2=Large,3=Huge,4=No           |
 | due_date         | date                              | nullable                                        |
 | is_completed     | bool                              | default false                                   |
 | is_deleted       | bool                              | default false                                   |
