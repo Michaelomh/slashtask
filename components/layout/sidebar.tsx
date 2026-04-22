@@ -57,8 +57,14 @@ export function SidebarContent({
       });
       setProjects((prev) => [...prev, created]);
       toast.success(`${created.name} project has been created.`);
-    } catch {
-      toast.error('Failed to create project');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('projects_slug_unique_active')) {
+        toast.error('Projects need to have a unique name.');
+      } else {
+        toast.error('Failed to create project');
+      }
+      throw err;
     }
   }
 
@@ -77,8 +83,14 @@ export function SidebarContent({
         }
         toast.success(`${updated.name} project has been successfully updated.`);
       }
-    } catch {
-      toast.error('Failed to update project');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('projects_slug_unique_active')) {
+        toast.error('Projects need to have a unique name.');
+      } else {
+        toast.error('Failed to update project');
+      }
+      throw err;
     }
   }
 

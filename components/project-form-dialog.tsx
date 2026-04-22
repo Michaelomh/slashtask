@@ -108,16 +108,21 @@ export function ProjectFormDialog({
   async function handleSave() {
     if (!name.trim()) return;
     setSaving(true);
-    await onSave({
-      id: mode === 'edit' && data ? data.id : undefined,
-      name: name.trim(),
-      emoji,
-      color,
-      order: data?.order ?? 0,
-    });
-    setSaving(false);
-    if (mode === 'create') resetForm();
-    handleClose();
+    try {
+      await onSave({
+        id: mode === 'edit' && data ? data.id : undefined,
+        name: name.trim(),
+        emoji,
+        color,
+        order: data?.order ?? 0,
+      });
+      if (mode === 'create') resetForm();
+      handleClose();
+    } catch {
+      // keep modal open on error
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete() {
