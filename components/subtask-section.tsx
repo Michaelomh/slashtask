@@ -2,7 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { TaskEditor, TaskEditorValues } from '@/components/task-editor';
+import {
+  TaskEditor,
+  TaskEditorValues,
+} from '@/components/molecule/task-editor';
 import { Project, Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';

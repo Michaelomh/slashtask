@@ -30,13 +30,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-const priorityBorder: Record<number, string> = {
-  1: 'border-l-red-500',
-  2: 'border-l-orange-500',
-  3: 'border-l-blue-500',
-  4: 'border-l-transparent',
-};
-
 type DragHandleProps = {
   listeners: DraggableSyntheticListeners;
   attributes: DraggableAttributes;
@@ -138,8 +131,7 @@ export function TaskItem({
         <ContextMenuTrigger className="block">
           <div
             className={cn(
-              'group border-border/50 flex items-start border-b border-l-2 transition-all',
-              priorityBorder[task.priority],
+              'group border-border/50 flex items-start border-b transition-all',
               dragHandle?.isDragging && 'opacity-40'
             )}
           >

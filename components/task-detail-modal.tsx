@@ -2,7 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { TaskEditor, TaskEditorValues } from '@/components/task-editor';
+import {
+  TaskEditor,
+  TaskEditorValues,
+} from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
 import { Project, Task } from '@/lib/types';
 import { format } from 'date-fns';
@@ -92,12 +95,17 @@ export function TaskDetailModal({
           if (!open) router.back();
         }}
       >
-        <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-lg">
+        <DialogContent
+          showCloseButton={false}
+          className="gap-0 p-0 sm:max-w-lg"
+        >
           <div className="max-h-[80vh] overflow-y-auto px-4 pt-4 pb-3">
             <TaskEditor
               projects={projects}
               initialValues={initialValues}
-              onChange={(v) => { valuesRef.current = v; }}
+              onChange={(v) => {
+                valuesRef.current = v;
+              }}
             />
             <SubTaskSection
               subTasks={subTasks}
@@ -114,7 +122,11 @@ export function TaskDetailModal({
               disabled={deleting}
               className="text-muted-foreground hover:text-destructive gap-1.5"
             >
-              {deleting ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
+              {deleting ? (
+                <Spinner size="sm" />
+              ) : (
+                <Trash2 className="size-3.5" />
+              )}
               Delete task
             </Button>
             <Button

@@ -1,6 +1,6 @@
 import { NewTaskModal } from '@/components/new-task-modal';
+import { Task } from '@/lib/types';
 import { getDbClient } from '@/utils/supabase/action-client';
-import { Suspense } from 'react';
 
 async function InterceptedNewTaskPage({
   searchParams,
@@ -20,7 +20,9 @@ async function InterceptedNewTaskPage({
     duplicate
       ? supabase
           .from('tasks')
-          .select('title, description, description_text, priority, effort, project_id, due_date')
+          .select(
+            'title, description, description_text, priority, effort, project_id, due_date'
+          )
           .eq('id', duplicate)
           .eq('user_id', user.id)
           .single()
@@ -28,12 +30,11 @@ async function InterceptedNewTaskPage({
   ]);
 
   return (
-    <Suspense fallback={null}>
-      <NewTaskModal
-        projects={projectsResult.data ?? []}
-        initialData={duplicateResult.data ?? undefined}
-      />
-    </Suspense>
+    <NewTaskModal
+      projects={projectsResult.data ?? []}
+      initialTask={(duplicateResult.data as Task) ?? undefined}
+      open
+    />
   );
 }
 

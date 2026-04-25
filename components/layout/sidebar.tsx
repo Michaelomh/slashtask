@@ -7,6 +7,7 @@ import {
   updateProject,
 } from '@/app/actions/projects';
 import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
 import { Project } from '@/lib/types';
 import { cn, toKebabCase } from '@/lib/utils';
 import {
@@ -19,12 +20,13 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { NewTaskModal } from '../new-task-modal';
 import { ProjectFormDialog } from '../project-form-dialog';
+import GlobalSpinner from './global-spinner';
 
 const navLinks = [
-  { href: '/task', label: 'New Task', icon: CirclePlus },
   { href: '/', label: 'Upcoming', icon: CalendarDays },
   { href: '/completed', label: 'Completed', icon: CheckCircle2 },
 ];
@@ -40,14 +42,45 @@ export function SidebarContent({
 }: SidebarContentProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isSyncing, startSyncTransition] = useTransition();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
 
-  // This would update the project data whenever there is a change.
   useEffect(() => {
     setProjects(initialProjects);
   }, [initialProjects]);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        startSyncTransition(() => {
+          router.refresh();
+        });
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [router]);
+
+  function navigate(href: string, e: React.MouseEvent) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
+      return;
+    e.preventDefault();
+    if (href === pathname) return;
+    setPendingHref(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  }
 
   async function handleProjectCreate(data: ProjectInput) {
     try {
@@ -129,12 +162,23 @@ export function SidebarContent({
 
       {/* Navigation */}
       <nav className="flex flex-col gap-0.5">
+        <button
+          onClick={() => setNewTaskOpen(true)}
+          className="text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+        >
+          <CirclePlus className="size-4 shrink-0" />
+          New Task
+        </button>
+
         {navLinks.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href;
+          const isActive = pendingHref
+            ? pendingHref === href
+            : pathname === href;
           return (
             <Link
               key={href}
               href={href}
+              onClick={(e) => navigate(href, e)}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 isActive
@@ -179,7 +223,10 @@ export function SidebarContent({
         {/* Project list */}
         <div className="mt-1 flex flex-col gap-0.5">
           {projects.map((project) => {
-            const isActive = pathname === `/project/${project.slug}`;
+            const projectHref = `/project/${project.slug}`;
+            const isActive = pendingHref
+              ? pendingHref === projectHref
+              : pathname === projectHref;
             return (
               <div
                 key={project.id}
@@ -194,7 +241,8 @@ export function SidebarContent({
                 }
               >
                 <Link
-                  href={`/project/${project.slug}`}
+                  href={projectHref}
+                  onClick={(e) => navigate(projectHref, e)}
                   className={cn(
                     'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
                     isActive
@@ -233,6 +281,24 @@ export function SidebarContent({
           })}
         </div>
       </div>
+
+      {/* Syncing indicator */}
+      {isSyncing && (
+        <div className="text-sidebar-foreground mt-auto flex items-center gap-2 px-3 py-2 text-xs">
+          <Spinner />
+          Syncing data
+        </div>
+      )}
+
+      {/* Immediate navigation spinner — shows before loading.tsx Suspense fires */}
+      {isPending && <GlobalSpinner />}
+
+      {/* New task modal */}
+      <NewTaskModal
+        projects={projects}
+        open={newTaskOpen}
+        onClose={() => setNewTaskOpen(false)}
+      />
 
       {/* Create dialog */}
       <ProjectFormDialog

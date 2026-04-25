@@ -84,7 +84,7 @@ export default async function ProjectPage({
   return (
     <div className="mx-auto max-w-200 px-4 py-8">
       <div className="mb-6 flex items-center gap-2">
-        <span className="text-2xl">{project.emoji}</span>
+        <span className="size-8 text-center text-2xl">{project.emoji}</span>
         <h1 className="text-xl font-semibold">{project.name}</h1>
       </div>
 

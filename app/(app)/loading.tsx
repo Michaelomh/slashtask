@@ -2,7 +2,8 @@ import { Spinner } from '@/components/ui/spinner';
 
 export default function Loading() {
   return (
-    <div className="flex flex-1 items-center justify-center py-16">
+    <div className="mx-auto max-w-200 px-4 py-8">
+      <h1 className="mb-6 text-xl font-semibold">Upcoming</h1>
       <Spinner />
     </div>
   );
