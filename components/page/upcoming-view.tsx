@@ -205,9 +205,18 @@ export function UpcomingView({
     >
       <NoDueDateGroup tasks={noDueDateTasks} projects={projects} />
       <OverdueGroup tasks={overdueTasks} projects={projects} />
-      <TodayGroup group={todayGroup} projectMap={projectMap} />
+      <TodayGroup
+        group={todayGroup}
+        projectMap={projectMap}
+        projects={projects}
+      />
       {visibleGroups.map((group) => (
-        <DateGroup key={group.date} group={group} projectMap={projectMap} />
+        <DateGroup
+          key={group.date}
+          group={group}
+          projectMap={projectMap}
+          projects={projects}
+        />
       ))}
       {hasMore && <div ref={sentinelRef} className="h-8" aria-hidden="true" />}
 

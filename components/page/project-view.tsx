@@ -11,7 +11,11 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { DateGroup, NoDueDateGroup, OverdueGroup } from '@/components/date-group';
+import {
+  DateGroup,
+  NoDueDateGroup,
+  OverdueGroup,
+} from '@/components/date-group';
 import { groupTasksByDate } from '@/lib/task-grouping';
 import { TaskItem } from '@/components/task-item';
 import { Project, Task } from '@/lib/types';
@@ -26,7 +30,10 @@ type ProjectViewProps = {
   projects: Project[];
 };
 
-export function ProjectView({ tasks: initialTasks, projects }: ProjectViewProps) {
+export function ProjectView({
+  tasks: initialTasks,
+  projects,
+}: ProjectViewProps) {
   const [tasks, setTasks] = useState(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const prevTasksRef = useRef<Task[]>(initialTasks);
@@ -37,7 +44,9 @@ export function ProjectView({ tasks: initialTasks, projects }: ProjectViewProps)
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
   );
 
   const noDueDateTasks = useMemo(() => {
@@ -53,9 +62,7 @@ export function ProjectView({ tasks: initialTasks, projects }: ProjectViewProps)
     return tasks
       .filter(
         (t) =>
-          !t.is_completed &&
-          t.due_date &&
-          isBefore(parseISO(t.due_date), today)
+          !t.is_completed && t.due_date && isBefore(parseISO(t.due_date), today)
       )
       .sort((a, b) => a.due_date!.localeCompare(b.due_date!));
   }, [tasks]);
@@ -116,7 +123,11 @@ export function ProjectView({ tasks: initialTasks, projects }: ProjectViewProps)
     }
 
     const affectedDates = new Set([sourceContainerId, destContainerId]);
-    const reorderPayload: { id: string; order: number; due_date?: string | null }[] = [];
+    const reorderPayload: {
+      id: string;
+      order: number;
+      due_date?: string | null;
+    }[] = [];
 
     for (const date of affectedDates) {
       const groupTasks = updated.filter((t) => t.due_date === date);
@@ -126,7 +137,8 @@ export function ProjectView({ tasks: initialTasks, projects }: ProjectViewProps)
           id: t.id,
           order: t.order,
         };
-        if (t.id === activeId && dueDateChanged) entry.due_date = destContainerId;
+        if (t.id === activeId && dueDateChanged)
+          entry.due_date = destContainerId;
         reorderPayload.push(entry);
       });
     }
@@ -143,7 +155,9 @@ export function ProjectView({ tasks: initialTasks, projects }: ProjectViewProps)
     : null;
 
   const isEmpty =
-    noDueDateTasks.length === 0 && overdueTasks.length === 0 && groups.length === 0;
+    noDueDateTasks.length === 0 &&
+    overdueTasks.length === 0 &&
+    groups.length === 0;
 
   return (
     <DndContext
@@ -161,7 +175,12 @@ export function ProjectView({ tasks: initialTasks, projects }: ProjectViewProps)
           <NoDueDateGroup tasks={noDueDateTasks} projects={projects} />
           <OverdueGroup tasks={overdueTasks} projects={projects} />
           {groups.map((group) => (
-            <DateGroup key={group.date} group={group} projectMap={projectMap} />
+            <DateGroup
+              key={group.date}
+              group={group}
+              projectMap={projectMap}
+              projects={projects}
+            />
           ))}
         </>
       )}

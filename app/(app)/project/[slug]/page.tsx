@@ -56,12 +56,11 @@ export default async function ProjectPage({
   const [tasksResult, projectsResult] = await Promise.all([
     supabase
       .from('tasks')
-      .select('*, sub_tasks:tasks!parent_task_id(id,is_completed,is_deleted)')
+      .select('*')
       .eq('project_id', project.id)
       .eq('user_id', user!.id)
       .eq('is_deleted', false)
       .eq('is_completed', false)
-      .is('parent_task_id', null)
       .order('due_date', { ascending: true })
       .order('order', { ascending: true }),
     supabase

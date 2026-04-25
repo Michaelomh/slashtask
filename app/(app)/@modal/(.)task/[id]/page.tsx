@@ -1,4 +1,4 @@
-import { TaskDetailModal } from '@/components/task-detail-modal';
+import { EditTaskModal } from '@/components/edit-task-modal';
 import { Task, Project } from '@/lib/types';
 import { getDbClient } from '@/utils/supabase/action-client';
 import { notFound } from 'next/navigation';
@@ -39,7 +39,7 @@ export default async function InterceptedTaskDetailPage({
   if (!task) notFound();
 
   return (
-    <TaskDetailModal
+    <EditTaskModal
       id={id}
       task={task as Task}
       projects={(projects ?? []) as Project[]}

@@ -9,6 +9,7 @@ import { usePriorityShortcut } from '@/hooks/use-priority-shortcut';
 import { parseDateToken, removeTriggerToken } from '@/lib/shortcut-parser';
 import { Project } from '@/lib/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export type TaskEditorValues = {
   title: string;
@@ -18,6 +19,16 @@ export type TaskEditorValues = {
   effort: number;
   project: Project | null;
   dueDate: Date | null;
+};
+
+export const INITIAL_EMPTY_TASK = {
+  title: '',
+  description: '',
+  descriptionPlain: '',
+  priority: 3,
+  effort: 4,
+  project: null,
+  dueDate: null,
 };
 
 type TaskEditorProps = {
@@ -44,13 +55,21 @@ export function TaskEditor({
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState(initialValues?.title ?? '');
-  const [description, setDescription] = useState(initialValues?.description ?? '');
-  const [descriptionPlain, setDescriptionPlain] = useState(initialValues?.descriptionPlain ?? '');
-  const [pickerDate, setPickerDate] = useState<Date | null>(initialValues?.dueDate ?? null);
+  const [description, setDescription] = useState(
+    initialValues?.description ?? ''
+  );
+  const [descriptionPlain, setDescriptionPlain] = useState(
+    initialValues?.descriptionPlain ?? ''
+  );
+  const [pickerDate, setPickerDate] = useState<Date | null>(
+    initialValues?.dueDate ?? null
+  );
   const [lastSource, setLastSource] = useState<'picker' | 'shortcut'>('picker');
   const [priority, setPriority] = useState(initialValues?.priority ?? 3);
   const [effort, setEffort] = useState(initialValues?.effort ?? 4);
-  const [project, setProject] = useState<Project | null>(initialValues?.project ?? null);
+  const [project, setProject] = useState<Project | null>(
+    initialValues?.project ?? null
+  );
 
   const projectShortcut = useProjectShortcut(projects);
   const priorityShortcut = usePriorityShortcut();
@@ -65,7 +84,8 @@ export function TaskEditor({
     }
   }, [token]);
 
-  const effectiveDueDate = lastSource === 'shortcut' && token ? token.date : pickerDate;
+  const effectiveDueDate =
+    lastSource === 'shortcut' && token ? token.date : pickerDate;
 
   // Fires onChange with current state, applying any in-flight overrides to avoid stale closures.
   function emit(overrides: Partial<TaskEditorValues> = {}) {
@@ -124,7 +144,7 @@ export function TaskEditor({
   }
 
   return (
-    <div className={className}>
+    <div className={cn('flex flex-col gap-2', className)}>
       <TitleInput
         ref={titleInputRef}
         autoFocus={autoFocus}
@@ -176,10 +196,8 @@ export function TaskEditor({
         value={description}
         onChange={handleDescriptionChange}
         placeholder="Description"
-        className="mt-1.5"
       />
       <TaskToolbar
-        className="pt-2"
         projects={projects}
         project={project}
         onProjectChange={handleProjectChange}

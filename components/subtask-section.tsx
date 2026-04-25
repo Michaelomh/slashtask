@@ -3,16 +3,17 @@
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import {
+  INITIAL_EMPTY_TASK,
   TaskEditor,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Project, Task } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react';
-import { createTask, deleteTask, updateTask } from '@/app/actions/tasks';
-import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import { createTask } from '@/app/actions/tasks';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { SubTaskItem } from './subtask-item';
 
 type SubTaskSectionProps = {
   projects: Project[];
@@ -26,44 +27,19 @@ export function SubTaskSection({
   subTasks: initialSubTasks,
 }: SubTaskSectionProps) {
   const [subTasks, setSubTasks] = useState<Task[]>(initialSubTasks);
+
+  useEffect(() => {
+    setSubTasks(initialSubTasks);
+  }, [initialSubTasks]);
   const [addingSubTask, setAddingSubTask] = useState(false);
   const [savingSubTask, setSavingSubTask] = useState(false);
   const [editorValues, setEditorValues] = useState<TaskEditorValues>({
-    title: '',
-    description: '',
-    descriptionPlain: '',
-    priority: 3,
-    effort: 4,
-    project: null,
+    ...INITIAL_EMPTY_TASK,
     dueDate: parentTask.due_date
       ? new Date(parentTask.due_date + 'T00:00:00')
       : null,
+    project: projects.find((p) => p.id === parentTask.project_id) ?? null,
   });
-
-  async function handleToggleSubTask(subId: string, current: boolean) {
-    setSubTasks((prev) =>
-      prev.map((s) => (s.id === subId ? { ...s, is_completed: !current } : s))
-    );
-    try {
-      await updateTask(subId, { is_completed: !current });
-    } catch {
-      setSubTasks((prev) =>
-        prev.map((s) => (s.id === subId ? { ...s, is_completed: current } : s))
-      );
-      toast.error('Failed to update sub-task');
-    }
-  }
-
-  async function handleDeleteSubTask(subId: string) {
-    const snapshot = subTasks;
-    setSubTasks((prev) => prev.filter((s) => s.id !== subId));
-    try {
-      await deleteTask(subId);
-    } catch {
-      toast.error('Failed to delete sub-task');
-      setSubTasks(snapshot);
-    }
-  }
 
   async function handleAddSubTask() {
     if (!editorValues.title.trim() || savingSubTask) return;
@@ -77,12 +53,14 @@ export function SubTaskSection({
         due_date: editorValues.dueDate
           ? format(editorValues.dueDate, 'yyyy-MM-dd')
           : null,
+        project_id: editorValues.project?.id ?? null,
         description: editorValues.description.trim() || null,
         description_text:
           editorValues.descriptionPlain.trim().slice(0, 500) || null,
       });
       setSubTasks((prev) => [...prev, created]);
       setAddingSubTask(false);
+      toast.success('Sub-task created');
     } catch {
       toast.error('Failed to add sub-task');
     } finally {
@@ -92,40 +70,14 @@ export function SubTaskSection({
 
   return (
     <div className="mt-4">
-      {subTasks.map((sub) => (
-        <div key={sub.id} className="border-border group border-t py-2.5">
-          <div className="flex items-start gap-2.5">
-            <button
-              onClick={() => handleToggleSubTask(sub.id, sub.is_completed)}
-              className="text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors"
-            >
-              {sub.is_completed ? (
-                <CheckCircle2 className="text-primary size-4" />
-              ) : (
-                <Circle className="size-4" />
-              )}
-            </button>
-            <span
-              className={cn(
-                'flex-1 text-sm',
-                sub.is_completed && 'text-muted-foreground line-through'
-              )}
-            >
-              {sub.title}
-            </span>
-            <button
-              onClick={() => handleDeleteSubTask(sub.id)}
-              className="text-muted-foreground/0 hover:text-destructive group-hover:text-muted-foreground/50 size-4 shrink-0 transition-colors"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
-          </div>
-          {sub.due_date && (
-            <p className="mt-0.5 ml-7 text-xs text-green-500">
-              {format(new Date(sub.due_date + 'T00:00:00'), 'MMM d')}
-            </p>
-          )}
-        </div>
+      {subTasks.length > 0 && <span className="font-bold">Sub-tasks</span>}
+      {subTasks.map((subTask) => (
+        <SubTaskItem
+          key={subTask.id}
+          task={subTask}
+          project={projects.find((p) => p.id === subTask.project_id) ?? null}
+          projects={projects}
+        />
       ))}
 
       {addingSubTask ? (

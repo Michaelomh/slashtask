@@ -10,26 +10,26 @@ import { Spinner } from '@/components/ui/spinner';
 import { Project, Task } from '@/lib/types';
 import { format } from 'date-fns';
 import { Save, Trash2 } from 'lucide-react';
-import { deleteTask, updateTask } from '@/app/actions/tasks';
+import { deleteTask, deleteTaskWithSubtasks, restoreTasks, updateTask } from '@/app/actions/tasks';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 import { SubTaskSection } from './subtask-section';
 
-type TaskDetailModalProps = {
+type EditTaskModalProps = {
   id: string;
   task: Task;
   projects: Project[];
   subTasks: Task[];
 };
 
-export function TaskDetailModal({
+export function EditTaskModal({
   id,
   task,
   projects,
   subTasks,
-}: TaskDetailModalProps) {
+}: EditTaskModalProps) {
   const router = useRouter();
 
   const initialValues: TaskEditorValues = {
@@ -60,6 +60,7 @@ export function TaskDetailModal({
         project_id: v.project?.id ?? null,
         due_date: v.dueDate ? format(v.dueDate, 'yyyy-MM-dd') : null,
       });
+      router.back();
       toast.success('Task saved');
     } catch {
       toast.error('Failed to save task');
@@ -79,8 +80,16 @@ export function TaskDetailModal({
   async function handleDelete() {
     setDeleting(true);
     try {
-      await deleteTask(id);
+      const deletedIds = subTasks.length > 0
+        ? await deleteTaskWithSubtasks(id)
+        : await deleteTask(id).then(() => [id]);
       router.back();
+      toast('Task deleted', {
+        action: {
+          label: 'Undo',
+          onClick: () => restoreTasks(deletedIds),
+        },
+      });
     } catch {
       toast.error('Failed to delete task');
       setDeleting(false);
@@ -89,17 +98,12 @@ export function TaskDetailModal({
 
   return (
     <>
-      <Dialog
-        open
-        onOpenChange={(open) => {
-          if (!open) router.back();
-        }}
-      >
+      <Dialog open onOpenChange={() => router.back()}>
         <DialogContent
           showCloseButton={false}
           className="gap-0 p-0 sm:max-w-lg"
         >
-          <div className="max-h-[80vh] overflow-y-auto px-4 pt-4 pb-3">
+          <div className="px-4 pt-4 pb-3">
             <TaskEditor
               projects={projects}
               initialValues={initialValues}

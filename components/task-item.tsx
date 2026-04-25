@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteTask, updateTask } from '@/app/actions/tasks';
+import { deleteTask, deleteTaskWithSubtasks, restoreTasks, updateTask } from '@/app/actions/tasks';
 import { DeleteConfirmationDialog } from '@/components/molecule/delete-confirmation-dialog';
 import {
   ContextMenu,
@@ -83,8 +83,15 @@ export function TaskItem({
   async function handleDelete() {
     setIsDeleting(true);
     try {
-      await deleteTask(task.id);
-      toast.success('Task deleted');
+      const deletedIds = (task.sub_task_total ?? 0) > 0
+        ? await deleteTaskWithSubtasks(task.id)
+        : await deleteTask(task.id).then(() => [task.id]);
+      toast('Task deleted', {
+        action: {
+          label: 'Undo',
+          onClick: () => restoreTasks(deletedIds),
+        },
+      });
     } catch {
       toast.error('Failed to delete task');
     } finally {
@@ -193,12 +200,6 @@ export function TaskItem({
                 {task.description_text && (
                   <span className="text-muted-foreground truncate text-xs">
                     {task.description_text}
-                  </span>
-                )}
-                {(task.sub_task_total ?? 0) > 0 && (
-                  <span className="text-muted-foreground flex items-center gap-1 text-xs">
-                    <ListTree className="size-3 shrink-0" />
-                    {task.sub_task_completed}/{task.sub_task_total}
                   </span>
                 )}
               </div>
