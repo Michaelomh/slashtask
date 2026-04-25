@@ -60,7 +60,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         {children}
-        <Toaster />
+        <Toaster richColors />
       </body>
     </html>
   );

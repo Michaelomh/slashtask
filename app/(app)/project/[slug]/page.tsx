@@ -1,4 +1,4 @@
-import { ProjectView } from '@/components/project-view';
+import { ProjectView } from '@/components/page/project-view';
 import { Project, Task } from '@/lib/types';
 import { createClient } from '@/utils/supabase/server';
 import { Metadata } from 'next';
@@ -56,12 +56,11 @@ export default async function ProjectPage({
   const [tasksResult, projectsResult] = await Promise.all([
     supabase
       .from('tasks')
-      .select('*, sub_tasks:tasks!parent_task_id(id,is_completed,is_deleted)')
+      .select('*')
       .eq('project_id', project.id)
       .eq('user_id', user!.id)
       .eq('is_deleted', false)
       .eq('is_completed', false)
-      .is('parent_task_id', null)
       .order('due_date', { ascending: true })
       .order('order', { ascending: true }),
     supabase
@@ -84,7 +83,7 @@ export default async function ProjectPage({
   return (
     <div className="mx-auto max-w-200 px-4 py-8">
       <div className="mb-6 flex items-center gap-2">
-        <span className="text-2xl">{project.emoji}</span>
+        <span className="size-8 text-center text-2xl">{project.emoji}</span>
         <h1 className="text-xl font-semibold">{project.name}</h1>
       </div>
 

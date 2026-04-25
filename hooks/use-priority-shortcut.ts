@@ -3,37 +3,38 @@ import { useMemo, useState } from 'react';
 
 interface PriorityItem {
   id: string;
-  value: 1 | 2 | 3 | 4;
+  value: 0 | 1 | 2 | 3;
   label: string;
   color: string;
   matches: string[];
 }
 
+// TODO: see if we can link to enums.tsx
 const PRIORITY_ITEMS: PriorityItem[] = [
   {
-    id: '1',
-    value: 1,
+    id: '0',
+    value: 0,
     label: 'High Priority',
     color: 'text-red-500',
     matches: ['1', 'p1', 'high'],
   },
   {
-    id: '2',
-    value: 2,
+    id: '1',
+    value: 1,
     label: 'Medium Priority',
     color: 'text-orange-500',
     matches: ['2', 'p2', 'medium'],
   },
   {
-    id: '3',
-    value: 3,
+    id: '2',
+    value: 2,
     label: 'Low Priority',
     color: 'text-blue-500',
     matches: ['3', 'p3', 'low'],
   },
   {
-    id: '4',
-    value: 4,
+    id: '3',
+    value: 3,
     label: 'No Priority',
     color: 'text-muted-foreground',
     matches: ['4', 'p4', 'no', 'none'],
@@ -42,7 +43,7 @@ const PRIORITY_ITEMS: PriorityItem[] = [
 
 interface ConfirmResult {
   newTitle: string;
-  value: 1 | 2 | 3 | 4;
+  value: 0 | 1 | 2 | 3 | 4;
   color: string;
 }
 
@@ -80,12 +81,12 @@ export function usePriorityShortcut() {
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightIndex((i) => Math.min(i + 1, filteredItems.length - 1));
+      setHighlightIndex((i) => (i + 1) % filteredItems.length);
       return { consumed: true };
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightIndex((i) => Math.max(i - 1, 0));
+      setHighlightIndex((i) => (i - 1 + filteredItems.length) % filteredItems.length);
       return { consumed: true };
     }
     if (e.key === 'Enter') {
@@ -118,6 +119,7 @@ export function usePriorityShortcut() {
 
   return {
     isOpen,
+    setIsOpen,
     filteredItems,
     highlightIndex,
     onInputChange,

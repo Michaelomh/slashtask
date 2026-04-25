@@ -1,7 +1,8 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { Toaster as Sonner, ToasterProps } from 'sonner';
+
+import { toast, Toaster as Sonner, ToasterProps } from 'sonner';
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -9,6 +10,10 @@ import {
   OctagonXIcon,
   Loader2Icon,
 } from 'lucide-react';
+
+const _originalError = toast.error.bind(toast);
+toast.error = (message, data) =>
+  _originalError(message, { duration: 10000, closeButton: true, ...data });
 
 function Toaster({ ...props }: ToasterProps) {
   const { theme = 'system' } = useTheme();

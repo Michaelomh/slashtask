@@ -32,7 +32,7 @@ export async function createProject(input: ProjectInput): Promise<Project> {
 
   if (error) {
     console.error('[createProject]', error);
-    throw new Error('Failed to create project');
+    throw new Error(error.message);
   }
   revalidatePath('/', 'layout');
   return data as Project;
@@ -57,7 +57,7 @@ export async function updateProject(
 
   if (error) {
     console.error('[updateProject]', error);
-    throw new Error('Failed to update project');
+    throw new Error(error.message);
   }
   revalidatePath('/', 'layout');
   return data as Project;

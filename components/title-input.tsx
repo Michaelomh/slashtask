@@ -21,17 +21,16 @@ export const TitleInput = forwardRef<HTMLInputElement, TitleInputProps>(
     const after = highlight ? str.slice(highlight.end) : '';
 
     return (
-      <div className={cn('relative', className)}>
+      <div className={cn('relative w-full', className)}>
         {/* Highlight overlay — sits behind the input, pointer-events-none */}
         <div
           ref={overlayRef}
           aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre"
-          style={{ font: 'inherit' }}
+          className="pointer-events-none absolute inset-0 overflow-hidden text-[18px] whitespace-pre"
         >
           <span className="text-foreground">{before}</span>
           {token && (
-            <span className="bg-primary/20 text-primary rounded-sm px-0.5">
+            <span className="bg-primary/20 text-primary rounded-md px-1 py-0.5 text-[16px]">
               {token}
             </span>
           )}

@@ -9,20 +9,19 @@ export type DropdownItem = {
   icon?: React.ReactNode;
 };
 
-type ShortcutDropdownProps = {
+type TaskToolbarDropdownProps = {
   items: DropdownItem[];
   highlightIndex: number;
   onSelect: (index: number) => void;
 };
 
-export function ShortcutDropdown({
+export function TaskToolbarDropdown({
   items,
   highlightIndex,
   onSelect,
-}: ShortcutDropdownProps) {
+}: TaskToolbarDropdownProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Scroll highlighted item into view
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
@@ -48,6 +47,7 @@ export function ShortcutDropdown({
         <div
           role="option"
           key={item.id}
+          title={item.label}
           className={cn(
             'flex cursor-pointer items-center gap-2 px-3 py-2 text-sm',
             i === highlightIndex

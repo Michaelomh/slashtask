@@ -48,13 +48,13 @@ export function useProjectShortcut(projects: Project[]) {
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightIndex((i) => Math.min(i + 1, filteredProjects.length - 1));
+      setHighlightIndex((i) => (i + 1) % filteredProjects.length);
       return { consumed: true };
     }
 
     if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightIndex((i) => Math.max(i - 1, 0));
+      setHighlightIndex((i) => (i - 1 + filteredProjects.length) % filteredProjects.length);
       return { consumed: true };
     }
 
@@ -95,6 +95,7 @@ export function useProjectShortcut(projects: Project[]) {
 
   return {
     isOpen,
+    setIsOpen,
     filteredProjects,
     highlightIndex,
     onInputChange,

@@ -1,4 +1,4 @@
-import { TaskDetailModal } from '@/components/task-detail-modal';
+import { EditTaskModal } from '@/components/edit-task-modal';
 import { Task, Project } from '@/lib/types';
 import { getDbClient } from '@/utils/supabase/action-client';
 import { Metadata } from 'next';
@@ -56,7 +56,7 @@ export default async function TaskDetailPage({
   if (!task) notFound();
 
   return (
-    <TaskDetailModal
+    <EditTaskModal
       id={id}
       task={task}
       projects={(projects ?? []) as Project[]}
