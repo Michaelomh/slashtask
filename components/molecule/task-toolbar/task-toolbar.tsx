@@ -1,6 +1,6 @@
 'use client';
 
-import { DatePicker } from '@/components/molecule/date-picker';
+import { DueDateSelector } from '@/components/molecule/task-toolbar/due-date-selector';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,12 +11,14 @@ import { TaskToolbarDropdown } from '@/components/task-toolbar-dropdown';
 import { useEffortShortcut } from '@/hooks/use-effort-shortcut';
 import { useProjectShortcut } from '@/hooks/use-project-shortcut';
 import { usePriorityShortcut } from '@/hooks/use-priority-shortcut';
-import { EFFORTS, PRIORITIES } from '@/lib/enums';
-import { Project } from '@/lib/types';
+import { EFFORTS } from '@/lib/effort';
+import { PRIORITIES, PriorityValues } from '@/lib/priority';
+import { Project } from '@/lib/project';
 import { cn } from '@/lib/utils';
 import { Flag, Inbox, Zap } from 'lucide-react';
-import { RefObject, useEffect, useRef, useState } from 'react';
-import { Button } from '../ui/button';
+import { RefObject } from 'react';
+import { ProjectSelector } from './project-selector';
+import { PrioritySelector } from './priority-selector';
 
 const TOOLBAR_CLS =
   'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors cursor-pointer';
@@ -62,87 +64,28 @@ export function TaskToolbar({
     PRIORITIES.find((p) => p.value === priority) || PRIORITIES[3];
   const selectedEffort = EFFORTS.find((e) => e.value === effort) || EFFORTS[4];
 
-  const [isProjectOpen, setIsProjectOpen] = useState(false);
-  const projectWrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isProjectOpen) return;
-    function handleOutsideClick(e: MouseEvent) {
-      if (!projectWrapperRef.current?.contains(e.target as Node)) {
-        setIsProjectOpen(false);
-      }
-    }
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setIsProjectOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isProjectOpen]);
-
-  const projectItems = [
-    { id: '__none__', label: 'No Project' },
-    ...projects.map((p) => ({
-      id: p.id,
-      label: p.name,
-      icon: (
-        <span className="font-bold" style={{ color: p.color }}>
-          {p.emoji}
-        </span>
-      ),
-    })),
-  ];
-
   return (
     <div className={cn('relative', className)}>
       <div className="flex flex-wrap items-center gap-2">
-        {/* Project */}
-        <div ref={projectWrapperRef} className="relative">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsProjectOpen((v) => !v)}
-            className="max-w-40"
-          >
-            {project ? (
-              <>
-                <span className="font-bold" style={{ color: project.color }}>
-                  {project.emoji}
-                </span>
-                <span className="truncate">{project.name}</span>
-              </>
-            ) : (
-              'No Project'
-            )}
-          </Button>
-          {isProjectOpen && (
-            <TaskToolbarDropdown
-              items={projectItems}
-              highlightIndex={-1}
-              onSelect={(i) => {
-                const item = projectItems[i];
-                onProjectChange(
-                  item.id === '__none__'
-                    ? null
-                    : (projects.find((p) => p.id === item.id) ?? null)
-                );
-                setIsProjectOpen(false);
-              }}
-            />
-          )}
-        </div>
+        <ProjectSelector
+          projects={projects}
+          project={project}
+          onProjectChange={onProjectChange}
+          projectShortcut={projectShortcut}
+        />
 
-        <DatePicker value={effectiveDueDate} onChange={onDueDateChange} />
+        <DueDateSelector value={effectiveDueDate} onChange={onDueDateChange} />
+
+        <PrioritySelector
+          priority={priority as PriorityValues}
+          onPriorityChange={onPriorityChange}
+        />
 
         {/* Priority */}
-        <DropdownMenu>
+        <DropdownMenu open={priorityShortcut.isOpen}>
           <DropdownMenuTrigger
             className={cn(TOOLBAR_CLS, priority < 4 && selectedPriority.color)}
+            onClick={() => priorityShortcut.setIsOpen(true)}
           >
             {PRIORITIES[selectedPriority.value].icon}
             {PRIORITIES[selectedPriority.value].label}
@@ -151,7 +94,10 @@ export function TaskToolbar({
             {PRIORITIES.map((p) => (
               <DropdownMenuItem
                 key={p.value}
-                onClick={() => onPriorityChange(p.value)}
+                onClick={() => {
+                  onPriorityChange(p.value);
+                  priorityShortcut.setIsOpen(false);
+                }}
                 className="gap-2"
               >
                 <b>{p.label}</b> ({p.description})
@@ -180,7 +126,6 @@ export function TaskToolbar({
         </DropdownMenu>
       </div>
 
-      {/* Shortcut dropdowns */}
       {projectShortcut.isOpen && (
         <TaskToolbarDropdown
           items={projectShortcut.filteredProjects.map((p) => ({
@@ -205,6 +150,7 @@ export function TaskToolbar({
           }}
         />
       )}
+
       {priorityShortcut.isOpen && (
         <TaskToolbarDropdown
           items={priorityShortcut.filteredItems.map((item) => ({
@@ -223,6 +169,7 @@ export function TaskToolbar({
           }}
         />
       )}
+
       {effortShortcut.isOpen && (
         <TaskToolbarDropdown
           items={effortShortcut.filteredItems.map((item) => ({

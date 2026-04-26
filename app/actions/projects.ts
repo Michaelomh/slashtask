@@ -1,6 +1,6 @@
 'use server';
 
-import { Project } from '@/lib/types';
+import { Project } from '@/lib/project';
 import { toKebabCase } from '@/lib/utils';
 import { getDbClient } from '@/utils/supabase/action-client';
 import { revalidatePath } from 'next/cache';

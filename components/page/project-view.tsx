@@ -18,7 +18,8 @@ import {
 } from '@/components/date-group';
 import { groupTasksByDate } from '@/lib/task-grouping';
 import { TaskItem } from '@/components/task-item';
-import { Project, Task } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { isBefore, parseISO, startOfDay } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';

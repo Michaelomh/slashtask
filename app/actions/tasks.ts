@@ -1,6 +1,8 @@
 'use server';
 
-import { Task } from '@/lib/types';
+import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
+import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
+import { Task } from '@/lib/task';
 import { getDbClient } from '@/utils/supabase/action-client';
 import { revalidatePath } from 'next/cache';
 
@@ -26,8 +28,8 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
       description: input.description ?? null,
       description_text: input.description_text ?? null,
       project_id: input.project_id ?? null,
-      priority: input.priority ?? 3,
-      effort: input.effort ?? 4,
+      priority: input.priority ?? DEFAULT_PRIORITY_INDEX,
+      effort: input.effort ?? DEFAULT_EFFORT_INDEX,
       due_date: input.due_date ?? null,
       parent_task_id: input.parent_task_id ?? null,
       order: input.order ?? 0,

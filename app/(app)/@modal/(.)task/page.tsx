@@ -1,5 +1,5 @@
 import { NewTaskModal } from '@/components/new-task-modal';
-import { Task } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { getDbClient } from '@/utils/supabase/action-client';
 
 async function InterceptedNewTaskPage({

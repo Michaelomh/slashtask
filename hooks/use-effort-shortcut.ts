@@ -1,29 +1,12 @@
+import { EFFORTS, EffortValues } from '@/lib/effort';
 import { findTrigger, removeTriggerToken } from '@/lib/shortcut-parser';
 import { useMemo, useState } from 'react';
 
-interface EffortItem {
-  id: string;
-  value: 1 | 2 | 3 | 4;
-  label: string;
-  matches: string[];
-}
 
-// TODO: see if we can link to enums.tsx
-const EFFORT_ITEMS: EffortItem[] = [
-  {
-    id: '1',
-    value: 1,
-    label: 'S (Quick)',
-    matches: ['1', 's', 'small', 'quick'],
-  },
-  { id: '2', value: 2, label: 'M (<1hr)', matches: ['2', 'm', 'medium'] },
-  { id: '3', value: 3, label: 'L (1-3 hrs)', matches: ['3', 'l', 'large'] },
-  { id: '4', value: 4, label: 'XL (>3 hrs)', matches: ['4', 'xl', 'huge'] },
-];
 
 interface ConfirmResult {
   newTitle: string;
-  value: 1 | 2 | 3 | 4;
+  value: EffortValues;
 }
 
 export function useEffortShortcut() {
@@ -33,10 +16,10 @@ export function useEffortShortcut() {
   const [highlightIndex, setHighlightIndex] = useState(0);
 
   const filteredItems = useMemo(() => {
-    if (!query) return EFFORT_ITEMS;
+    if (!query) return EFFORTS;
     const q = query.toLowerCase();
-    return EFFORT_ITEMS.filter((item) =>
-      item.matches.some((m) => m.startsWith(q))
+    return EFFORTS.filter((item) =>
+      item.matches && item.matches.some((m) => m.startsWith(q))
     );
   }, [query]);
 

@@ -8,7 +8,7 @@ import {
 } from '@/app/actions/projects';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
-import { Project } from '@/lib/types';
+import { Project } from '@/lib/project';
 import { cn, toKebabCase } from '@/lib/utils';
 import {
   CalendarDays,
@@ -284,9 +284,9 @@ export function SidebarContent({
 
       {/* Syncing indicator */}
       {isSyncing && (
-        <div className="text-sidebar-foreground mt-auto flex items-center gap-2 px-3 py-2 text-xs">
-          <Spinner />
-          Syncing data
+        <div className="text-sidebar-foreground bg-sidebar-border mt-auto flex w-fit items-center gap-2 rounded-2xl px-4 py-2">
+          <Spinner className="text-primary" />
+          <p className="text-sm">Syncing data</p>
         </div>
       )}
 

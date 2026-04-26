@@ -1,5 +1,5 @@
 import { TaskItem } from '@/components/task-item';
-import { Task } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { createClient } from '@/utils/supabase/server';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';

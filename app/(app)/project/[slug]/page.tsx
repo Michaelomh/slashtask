@@ -1,5 +1,6 @@
 import { ProjectView } from '@/components/page/project-view';
-import { Project, Task } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { createClient } from '@/utils/supabase/server';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';

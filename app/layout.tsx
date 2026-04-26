@@ -58,7 +58,7 @@ export default function RootLayout({
       lang="en"
       className={`${fontSans.variable} ${fontMono.variable} dark h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex h-full flex-col overflow-hidden">
         {children}
         <Toaster richColors />
       </body>

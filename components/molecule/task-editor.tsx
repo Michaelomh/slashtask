@@ -1,15 +1,17 @@
 'use client';
 
 import { RichTextEditor } from '@/components/molecule/rich-text-editor';
-import { TaskToolbar } from '@/components/molecule/task-toolbar';
+import { TaskToolbar } from '@/components/molecule/task-toolbar/task-toolbar';
 import { TitleInput } from '@/components/title-input';
 import { useEffortShortcut } from '@/hooks/use-effort-shortcut';
 import { useProjectShortcut } from '@/hooks/use-project-shortcut';
 import { usePriorityShortcut } from '@/hooks/use-priority-shortcut';
 import { parseDateToken, removeTriggerToken } from '@/lib/shortcut-parser';
-import { Project } from '@/lib/types';
+import { Project } from '@/lib/project';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
+import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
 
 export type TaskEditorValues = {
   title: string;
@@ -25,8 +27,8 @@ export const INITIAL_EMPTY_TASK = {
   title: '',
   description: '',
   descriptionPlain: '',
-  priority: 3,
-  effort: 4,
+  priority: DEFAULT_PRIORITY_INDEX,
+  effort: DEFAULT_EFFORT_INDEX,
   project: null,
   dueDate: null,
 };
@@ -65,8 +67,12 @@ export function TaskEditor({
     initialValues?.dueDate ?? null
   );
   const [lastSource, setLastSource] = useState<'picker' | 'shortcut'>('picker');
-  const [priority, setPriority] = useState(initialValues?.priority ?? 3);
-  const [effort, setEffort] = useState(initialValues?.effort ?? 4);
+  const [priority, setPriority] = useState(
+    initialValues?.priority ?? DEFAULT_PRIORITY_INDEX
+  );
+  const [effort, setEffort] = useState(
+    initialValues?.effort ?? DEFAULT_EFFORT_INDEX
+  );
   const [project, setProject] = useState<Project | null>(
     initialValues?.project ?? null
   );

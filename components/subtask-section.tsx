@@ -7,7 +7,8 @@ import {
   TaskEditor,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
-import { Project, Task } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { createTask } from '@/app/actions/tasks';

@@ -1,5 +1,5 @@
 import { findProjectTrigger, removeTriggerToken } from '@/lib/shortcut-parser';
-import { type Project } from '@/lib/types';
+import { Project } from '@/lib/project';
 import { useMemo, useState } from 'react';
 
 interface ConfirmResult {

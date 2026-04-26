@@ -6,7 +6,8 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Task, Project } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { formatDateHeading, TaskGroup } from '@/lib/task-grouping';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';

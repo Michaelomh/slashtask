@@ -1,5 +1,5 @@
 import { UpcomingView } from '@/components/page/upcoming-view';
-import { Task } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { Metadata } from 'next/types';

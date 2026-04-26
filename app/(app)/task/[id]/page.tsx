@@ -1,5 +1,6 @@
 import { EditTaskModal } from '@/components/edit-task-modal';
-import { Task, Project } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { getDbClient } from '@/utils/supabase/action-client';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';

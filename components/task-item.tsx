@@ -1,6 +1,11 @@
 'use client';
 
-import { deleteTask, deleteTaskWithSubtasks, restoreTasks, updateTask } from '@/app/actions/tasks';
+import {
+  deleteTask,
+  deleteTaskWithSubtasks,
+  restoreTasks,
+  updateTask,
+} from '@/app/actions/tasks';
 import { DeleteConfirmationDialog } from '@/components/molecule/delete-confirmation-dialog';
 import {
   ContextMenu,
@@ -13,7 +18,8 @@ import {
   type DraggableAttributes,
   type DraggableSyntheticListeners,
 } from '@dnd-kit/core';
-import { Project, Task } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { cn } from '@/lib/utils';
 import { isPast, startOfDay, addDays } from 'date-fns';
 import {
@@ -83,9 +89,10 @@ export function TaskItem({
   async function handleDelete() {
     setIsDeleting(true);
     try {
-      const deletedIds = (task.sub_task_total ?? 0) > 0
-        ? await deleteTaskWithSubtasks(task.id)
-        : await deleteTask(task.id).then(() => [task.id]);
+      const deletedIds =
+        (task.sub_task_total ?? 0) > 0
+          ? await deleteTaskWithSubtasks(task.id)
+          : await deleteTask(task.id).then(() => [task.id]);
       toast('Task deleted', {
         action: {
           label: 'Undo',

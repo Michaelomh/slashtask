@@ -1,4 +1,4 @@
-import { Task } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { format, isPast, isToday, isTomorrow, startOfDay } from 'date-fns';
 
 export type TaskGroup = {

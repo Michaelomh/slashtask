@@ -7,10 +7,16 @@ import {
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
-import { Project, Task } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { Save, Trash2 } from 'lucide-react';
-import { deleteTask, deleteTaskWithSubtasks, restoreTasks, updateTask } from '@/app/actions/tasks';
+import {
+  deleteTask,
+  deleteTaskWithSubtasks,
+  restoreTasks,
+  updateTask,
+} from '@/app/actions/tasks';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -80,9 +86,10 @@ export function EditTaskModal({
   async function handleDelete() {
     setDeleting(true);
     try {
-      const deletedIds = subTasks.length > 0
-        ? await deleteTaskWithSubtasks(id)
-        : await deleteTask(id).then(() => [id]);
+      const deletedIds =
+        subTasks.length > 0
+          ? await deleteTaskWithSubtasks(id)
+          : await deleteTask(id).then(() => [id]);
       router.back();
       toast('Task deleted', {
         action: {

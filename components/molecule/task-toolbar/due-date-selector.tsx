@@ -11,7 +11,7 @@ import { format, isToday, isTomorrow } from 'date-fns';
 import { CalendarIcon, X } from 'lucide-react';
 import { useState } from 'react';
 
-type DatePickerProps = {
+type DueDateSelectorProps = {
   value: Date | null;
   onChange: (date: Date | null) => void;
   className?: string;
@@ -19,11 +19,15 @@ type DatePickerProps = {
 
 function formatDateLabel(date: Date): string {
   if (isToday(date)) return 'Today';
-  if (isTomorrow(date)) return 'Tomorrow';
-  return format(date, 'MMM d');
+  if (isTomorrow(date)) return 'Tmr';
+  return format(date, 'MMM dd');
 }
 
-export function DatePicker({ value, onChange, className }: DatePickerProps) {
+export function DueDateSelector({
+  value,
+  onChange,
+  className,
+}: DueDateSelectorProps) {
   const [open, setOpen] = useState(false);
 
   return (
