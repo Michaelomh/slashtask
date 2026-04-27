@@ -1,56 +1,24 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { forwardRef, useRef } from 'react';
 
 interface TitleInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  highlight?: { start: number; end: number } | null;
   inputClassName?: string;
 }
 
-export const TitleInput = forwardRef<HTMLInputElement, TitleInputProps>(
-  function TitleInput(
-    { highlight, className, inputClassName, value = '', onScroll, ...props },
-    ref
-  ) {
-    const overlayRef = useRef<HTMLDivElement>(null);
-    const str = String(value);
-
-    const before = highlight ? str.slice(0, highlight.start) : str;
-    const token = highlight ? str.slice(highlight.start, highlight.end) : '';
-    const after = highlight ? str.slice(highlight.end) : '';
-
-    return (
-      <div className={cn('relative w-full', className)}>
-        {/* Highlight overlay — sits behind the input, pointer-events-none */}
-        <div
-          ref={overlayRef}
-          aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden text-[18px] whitespace-pre"
-        >
-          <span className="text-foreground">{before}</span>
-          {token && (
-            <span className="bg-primary/20 text-primary rounded-md px-1 py-0.5 text-[16px]">
-              {token}
-            </span>
-          )}
-          <span className="text-foreground">{after}</span>
-        </div>
-
-        {/* Actual input — text transparent so overlay shows through, caret remains visible */}
-        <input
-          ref={ref}
-          value={value}
-          className={cn('caret-foreground text-transparent', inputClassName)}
-          onScroll={(e) => {
-            if (overlayRef.current) {
-              overlayRef.current.scrollLeft = e.currentTarget.scrollLeft;
-            }
-            onScroll?.(e);
-          }}
-          {...props}
-        />
-      </div>
-    );
-  }
-);
+export function TitleInput({
+  className,
+  inputClassName,
+  value = '',
+  ...props
+}: TitleInputProps) {
+  return (
+    <div className={cn('relative w-full', className)}>
+      <input
+        value={value}
+        className={cn('caret-foreground', inputClassName)}
+        {...props}
+      />
+    </div>
+  );
+}

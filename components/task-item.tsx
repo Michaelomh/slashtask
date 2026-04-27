@@ -1,6 +1,11 @@
 'use client';
 
-import { deleteTask, deleteTaskWithSubtasks, restoreTasks, updateTask } from '@/app/actions/tasks';
+import {
+  deleteTask,
+  deleteTaskWithSubtasks,
+  restoreTasks,
+  updateTask,
+} from '@/app/actions/tasks';
 import { DeleteConfirmationDialog } from '@/components/molecule/delete-confirmation-dialog';
 import {
   ContextMenu,
@@ -9,46 +14,23 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import {
-  type DraggableAttributes,
-  type DraggableSyntheticListeners,
-} from '@dnd-kit/core';
-import { Project, Task } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { cn } from '@/lib/utils';
 import { isPast, startOfDay, addDays } from 'date-fns';
-import {
-  CheckCircle2,
-  Circle,
-  Copy,
-  GripVertical,
-  ListTree,
-  RotateCcw,
-  Trash2,
-} from 'lucide-react';
+import { CheckCircle2, Circle, Copy, RotateCcw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-type DragHandleProps = {
-  listeners: DraggableSyntheticListeners;
-  attributes: DraggableAttributes;
-  isDragging: boolean;
-};
-
 type TaskItemProps = {
   task: Task;
   project: Project | null;
-  dragHandle?: DragHandleProps;
   variant?: 'active' | 'completed';
 };
 
-export function TaskItem({
-  task,
-  project,
-  dragHandle,
-  variant = 'active',
-}: TaskItemProps) {
+export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
   const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -83,9 +65,10 @@ export function TaskItem({
   async function handleDelete() {
     setIsDeleting(true);
     try {
-      const deletedIds = (task.sub_task_total ?? 0) > 0
-        ? await deleteTaskWithSubtasks(task.id)
-        : await deleteTask(task.id).then(() => [task.id]);
+      const deletedIds =
+        (task.sub_task_total ?? 0) > 0
+          ? await deleteTaskWithSubtasks(task.id)
+          : await deleteTask(task.id).then(() => [task.id]);
       toast('Task deleted', {
         action: {
           label: 'Undo',
@@ -138,29 +121,13 @@ export function TaskItem({
         <ContextMenuTrigger className="block">
           <div
             className={cn(
-              'group border-border/50 flex items-start border-b transition-all',
-              dragHandle?.isDragging && 'opacity-40'
+              'group border-border/50 flex items-start border-b transition-all'
             )}
           >
-            {/* Drag handle */}
-            <button
-              type="button"
-              aria-label="Drag to reorder"
-              className={cn(
-                'text-muted-foreground/30 hover:text-muted-foreground flex shrink-0 cursor-grab items-center self-stretch px-1.5 active:cursor-grabbing',
-                !dragHandle && 'hidden'
-              )}
-              {...dragHandle?.listeners}
-              {...dragHandle?.attributes}
-            >
-              <GripVertical className="size-3.5" />
-            </button>
-
             <Link
               href={`/task/${task.id}`}
               className={cn(
-                'hover:bg-muted/30 flex flex-1 items-start gap-3 py-3 pr-4 transition-all',
-                dragHandle ? 'pl-1' : 'pl-3'
+                'hover:bg-muted/30 flex flex-1 items-start gap-3 py-3 pr-4 transition-all'
               )}
             >
               {/* Checkbox */}

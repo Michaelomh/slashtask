@@ -1,7 +1,8 @@
 'use client';
 
 import { deleteTask, updateTask } from '@/app/actions/tasks';
-import { Project, Task } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { cn } from '@/lib/utils';
 import { isPast, startOfDay, addDays, format } from 'date-fns';
 import { CheckCircle2, Circle, Trash2 } from 'lucide-react';
@@ -11,14 +12,17 @@ import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { TaskEditor, TaskEditorValues } from './molecule/task-editor';
 import { Spinner } from './ui/spinner';
+import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
+import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
+import { useProjects } from '@/contexts/projects-context';
 
 type SubTaskItemProps = {
   task: Task;
   project: Project | null;
-  projects: Project[];
 };
 
-export function SubTaskItem({ task, project, projects }: SubTaskItemProps) {
+export function SubTaskItem({ task, project }: SubTaskItemProps) {
+  const { projects } = useProjects();
   const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
   const [updatingSubTask, setUpdatingSubTask] = useState(false);
@@ -28,8 +32,8 @@ export function SubTaskItem({ task, project, projects }: SubTaskItemProps) {
     title: task.title ?? '',
     description: task.description ?? '',
     descriptionPlain: task.description_text ?? '',
-    priority: task.priority ?? 3,
-    effort: task.effort ?? 4,
+    priority: task.priority ?? DEFAULT_PRIORITY_INDEX,
+    effort: task.effort ?? DEFAULT_EFFORT_INDEX,
     dueDate: task.due_date ? new Date(task.due_date + 'T00:00:00') : null,
     project: projects.find((p) => p.id === task.project_id) ?? null,
   });
@@ -120,7 +124,6 @@ export function SubTaskItem({ task, project, projects }: SubTaskItemProps) {
         <div className="border-border mt-1 w-full rounded-md border">
           <div className="px-3 pt-3 pb-2">
             <TaskEditor
-              projects={projects}
               initialValues={editorValues}
               onChange={setEditorValues}
               onSubmit={handleUpdateSubTask}

@@ -1,16 +1,5 @@
 'use client';
 
-import { reorderTasks } from '@/app/actions/tasks';
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  MouseSensor,
-  TouchSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
 import {
   DateGroup,
   NoDueDateGroup,
@@ -18,43 +7,30 @@ import {
   TodayGroup,
 } from '@/components/date-group';
 import { buildDateGroups } from '@/lib/task-grouping';
-import { TaskItem } from '@/components/task-item';
-import { Project, Task } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { addDays, isBefore, max, parseISO, startOfDay } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { useProjects } from '@/contexts/projects-context';
 
 const DAYS_PER_PAGE = 7;
 const MIN_HORIZON_DAYS = 30;
 
 type UpcomingViewProps = {
   tasks: Task[];
-  projects: Project[];
 };
 
 const today = startOfDay(new Date());
 const defaultHorizon = addDays(today, MIN_HORIZON_DAYS);
 
-export function UpcomingView({
-  tasks: initialTasks,
-  projects,
-}: UpcomingViewProps) {
+export function UpcomingView({ tasks: initialTasks }: UpcomingViewProps) {
+  const { projects } = useProjects();
   const [tasks, setTasks] = useState(initialTasks);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const prevTasksRef = useRef<Task[]>(initialTasks);
   const [visibleCount, setVisibleCount] = useState(DAYS_PER_PAGE);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTasks(initialTasks);
   }, [initialTasks]);
-
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 250, tolerance: 5 },
-    })
-  );
 
   const noDueDateTasks = useMemo(() => {
     return tasks
@@ -108,126 +84,20 @@ export function UpcomingView({
   const visibleGroups = allGroups.slice(1, visibleCount);
   const todayGroup = allGroups.slice(0, 1)[0];
 
-  function handleDragStart({ active }: { active: { id: string | number } }) {
-    const task = tasks.find((t) => t.id === active.id);
-    setActiveTask(task ?? null);
-    prevTasksRef.current = tasks;
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    setActiveTask(null);
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    if (activeId === overId) return;
-
-    // Determine containers
-    const sourceContainerId = active.data.current?.containerId as string;
-    const destContainerId =
-      (over.data.current?.containerId as string | undefined) ?? overId;
-
-    // Refuse to drop into overdue or no-due-date
-    if (destContainerId === 'overdue') return;
-    if (destContainerId === 'no-due-date') return;
-    if (!destContainerId) return;
-
-    const updated = [...tasks];
-    const activeIndex = updated.findIndex((t) => t.id === activeId);
-    if (activeIndex === -1) return;
-
-    const movedTask = { ...updated[activeIndex] };
-
-    // Cross-container: update due_date
-    const dueDateChanged = sourceContainerId !== destContainerId;
-    if (dueDateChanged) movedTask.due_date = destContainerId;
-
-    // Remove from old position
-    updated.splice(activeIndex, 1);
-
-    // Find insertion point in destination group
-    const overIndex = updated.findIndex((t) => t.id === overId);
-    if (overIndex !== -1 && over.data.current?.type === 'task') {
-      updated.splice(overIndex, 0, movedTask);
-    } else {
-      // Dropped on empty container or container edge — add at end of that day
-      const lastInDest = updated.reduce<number>(
-        (last, t, i) => (t.due_date === destContainerId ? i : last),
-        -1
-      );
-      updated.splice(lastInDest + 1, 0, movedTask);
-    }
-
-    // Recalculate orders for all affected date groups
-    const affectedDates = new Set([sourceContainerId, destContainerId]);
-    const reorderPayload: { id: string; order: number; due_date?: string }[] =
-      [];
-
-    for (const date of affectedDates) {
-      const groupTasks = updated.filter((t) => t.due_date === date);
-      groupTasks.forEach((t, i) => {
-        t.order = (i + 1) * 1000;
-        const entry: { id: string; order: number; due_date?: string } = {
-          id: t.id,
-          order: t.order,
-        };
-        if (t.id === activeId && dueDateChanged)
-          entry.due_date = destContainerId;
-        reorderPayload.push(entry);
-      });
-    }
-
-    // Optimistic update — revert on failure
-    setTasks(updated);
-    reorderTasks(reorderPayload).catch(() => {
-      setTasks(prevTasksRef.current);
-      toast.error('Failed to save order');
-    });
-  }
-
-  const activeProject = activeTask
-    ? (projects.find((p) => p.id === activeTask.project_id) ?? null)
-    : null;
-
   const projectMap = useMemo(
     () => new Map(projects.map((p) => [p.id, p])),
     [projects]
   );
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <NoDueDateGroup tasks={noDueDateTasks} projects={projects} />
-      <OverdueGroup tasks={overdueTasks} projects={projects} />
-      <TodayGroup
-        group={todayGroup}
-        projectMap={projectMap}
-        projects={projects}
-      />
+    <>
+      <NoDueDateGroup tasks={noDueDateTasks} />
+      <OverdueGroup tasks={overdueTasks} />
+      <TodayGroup group={todayGroup} projectMap={projectMap} />
       {visibleGroups.map((group) => (
-        <DateGroup
-          key={group.date}
-          group={group}
-          projectMap={projectMap}
-          projects={projects}
-        />
+        <DateGroup key={group.date} group={group} projectMap={projectMap} />
       ))}
       {hasMore && <div ref={sentinelRef} className="h-8" aria-hidden="true" />}
-
-      {/* Ghost preview while dragging */}
-      <DragOverlay>
-        {activeTask && (
-          <div className="rounded opacity-95 shadow-md">
-            <TaskItem task={activeTask} project={activeProject} />
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
+    </>
   );
 }

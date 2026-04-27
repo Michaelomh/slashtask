@@ -1,5 +1,5 @@
 import { EditTaskModal } from '@/components/edit-task-modal';
-import { Task, Project } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { getDbClient } from '@/utils/supabase/action-client';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -35,14 +35,8 @@ export default async function TaskDetailPage({
   const { id } = await params;
   const { supabase, user } = await getDbClient();
 
-  const [task, { data: projects }, { data: subTasks }] = await Promise.all([
+  const [task, { data: subTasks }] = await Promise.all([
     getTask(id),
-    supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_deleted', false)
-      .order('order', { ascending: true }),
     supabase
       .from('tasks')
       .select('*')
@@ -56,11 +50,6 @@ export default async function TaskDetailPage({
   if (!task) notFound();
 
   return (
-    <EditTaskModal
-      id={id}
-      task={task}
-      projects={(projects ?? []) as Project[]}
-      subTasks={(subTasks ?? []) as Task[]}
-    />
+    <EditTaskModal id={id} task={task} subTasks={(subTasks ?? []) as Task[]} />
   );
 }

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { Project } from '@/lib/types';
+import { Project } from '@/lib/project';
 import { cn } from '@/lib/utils';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';

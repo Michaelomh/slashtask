@@ -1,6 +1,8 @@
 'use server';
 
-import { Task } from '@/lib/types';
+import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
+import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
+import { Task } from '@/lib/task';
 import { getDbClient } from '@/utils/supabase/action-client';
 import { revalidatePath } from 'next/cache';
 
@@ -26,8 +28,8 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
       description: input.description ?? null,
       description_text: input.description_text ?? null,
       project_id: input.project_id ?? null,
-      priority: input.priority ?? 3,
-      effort: input.effort ?? 4,
+      priority: input.priority ?? DEFAULT_PRIORITY_INDEX,
+      effort: input.effort ?? DEFAULT_EFFORT_INDEX,
       due_date: input.due_date ?? null,
       parent_task_id: input.parent_task_id ?? null,
       order: input.order ?? 0,
@@ -84,12 +86,6 @@ export async function updateTask(
   return data as Task;
 }
 
-type ReorderItem = {
-  id: string;
-  order: number;
-  due_date?: string | null;
-};
-
 export async function deleteTask(id: string): Promise<void> {
   const { supabase, user } = await getDbClient();
 
@@ -106,7 +102,9 @@ export async function deleteTask(id: string): Promise<void> {
   revalidatePath('/', 'layout');
 }
 
-export async function deleteTaskWithSubtasks(parentId: string): Promise<string[]> {
+export async function deleteTaskWithSubtasks(
+  parentId: string
+): Promise<string[]> {
   const { supabase, user } = await getDbClient();
 
   const { data: subtasks, error: fetchError } = await supabase
@@ -152,28 +150,5 @@ export async function restoreTasks(ids: string[]): Promise<void> {
     throw new Error('Failed to restore tasks');
   }
 
-  revalidatePath('/', 'layout');
-}
-
-export async function reorderTasks(items: ReorderItem[]): Promise<void> {
-  const { supabase, user } = await getDbClient();
-
-  const results = await Promise.all(
-    items.map(({ id, order, due_date }) => {
-      const update: Record<string, unknown> = { order };
-      if (due_date !== undefined) update.due_date = due_date;
-      return supabase
-        .from('tasks')
-        .update(update)
-        .eq('id', id)
-        .eq('user_id', user.id);
-    })
-  );
-
-  const failed = results.find((r) => r.error);
-  if (failed?.error) {
-    console.error('[reorderTasks]', failed.error);
-    throw new Error('Failed to reorder tasks');
-  }
   revalidatePath('/', 'layout');
 }

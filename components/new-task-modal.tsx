@@ -8,22 +8,22 @@ import {
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
-import { Project, Task } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { formatDueDate } from '@/lib/date';
+import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
+import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
 
 type NewTaskModalProps = {
-  projects: Project[];
   initialTask?: Task;
   open: boolean;
   onClose?: () => void;
 };
 
 export function NewTaskModal({
-  projects,
   initialTask,
   open,
   onClose,
@@ -34,8 +34,8 @@ export function NewTaskModal({
     title: initialTask ? initialTask.title : '',
     description: (initialTask ? initialTask.description : '') ?? '',
     descriptionPlain: (initialTask ? initialTask.description_text : '') ?? '',
-    priority: initialTask ? initialTask.priority : 3,
-    effort: initialTask ? initialTask.effort : 4,
+    priority: initialTask ? initialTask.priority : DEFAULT_PRIORITY_INDEX,
+    effort: initialTask ? initialTask.effort : DEFAULT_EFFORT_INDEX,
     project: null,
     dueDate: initialTask ? formatDueDate(initialTask.due_date) : null,
   };
@@ -77,7 +77,6 @@ export function NewTaskModal({
       <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-lg">
         <div className="px-4 pt-4 pb-3">
           <TaskEditor
-            projects={projects}
             initialValues={initialValues}
             onChange={setValues}
             onSubmit={handleSubmit}

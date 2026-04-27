@@ -1,7 +1,6 @@
 'use client';
 
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Project } from '@/lib/types';
 import { Menu } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { SidebarContent } from './sidebar';
@@ -15,11 +14,10 @@ function usePageTitle() {
 }
 
 type MobileHeaderProps = {
-  projects: Project[];
   completedCount: number;
 };
 
-export function MobileHeader({ projects, completedCount }: MobileHeaderProps) {
+export function MobileHeader({ completedCount }: MobileHeaderProps) {
   const title = usePageTitle();
 
   return (
@@ -30,10 +28,7 @@ export function MobileHeader({ projects, completedCount }: MobileHeaderProps) {
           <span className="sr-only">Open menu</span>
         </SheetTrigger>
         <SheetContent side="left" className="bg-sidebar w-64 p-0">
-          <SidebarContent
-            initialProjects={projects}
-            completedCount={completedCount}
-          />
+          <SidebarContent completedCount={completedCount} />
         </SheetContent>
       </Sheet>
       <span className="text-sm font-semibold">{title}</span>

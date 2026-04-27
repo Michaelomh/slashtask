@@ -11,7 +11,7 @@ import { format, isToday, isTomorrow } from 'date-fns';
 import { CalendarIcon, X } from 'lucide-react';
 import { useState } from 'react';
 
-type DatePickerProps = {
+type DueDateSelectorProps = {
   value: Date | null;
   onChange: (date: Date | null) => void;
   className?: string;
@@ -19,18 +19,22 @@ type DatePickerProps = {
 
 function formatDateLabel(date: Date): string {
   if (isToday(date)) return 'Today';
-  if (isTomorrow(date)) return 'Tomorrow';
-  return format(date, 'MMM d');
+  if (isTomorrow(date)) return 'Tmr';
+  return format(date, 'MMM dd');
 }
 
-export function DatePicker({ value, onChange, className }: DatePickerProps) {
+export function DueDateSelector({
+  value,
+  onChange,
+  className,
+}: DueDateSelectorProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
+          'inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-sm transition-colors',
           value
             ? 'border-green-500/40 text-green-500 hover:border-green-500/60'
             : 'border-border text-muted-foreground hover:border-border/80 hover:text-foreground',

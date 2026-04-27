@@ -8,7 +8,9 @@ import {
 } from '@/app/actions/projects';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
-import { Project } from '@/lib/types';
+import { useNewTask } from '@/contexts/new-task-context';
+import { useProjects } from '@/contexts/projects-context';
+import { Project } from '@/lib/project';
 import { cn, toKebabCase } from '@/lib/utils';
 import {
   CalendarDays,
@@ -32,31 +34,19 @@ const navLinks = [
 ];
 
 type SidebarContentProps = {
-  initialProjects: Project[];
   completedCount: number;
 };
 
-export function SidebarContent({
-  initialProjects,
-  completedCount,
-}: SidebarContentProps) {
+export function SidebarContent({ completedCount }: SidebarContentProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isSyncing, startSyncTransition] = useTransition();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const { projects, setProjects } = useProjects();
+  const { open: newTaskOpen, setOpen: setNewTaskOpen } = useNewTask();
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
-
-  useEffect(() => {
-    setProjects(initialProjects);
-  }, [initialProjects]);
-
-  useEffect(() => {
-    setPendingHref(null);
-  }, [pathname]);
 
   useEffect(() => {
     function handleVisibilityChange() {
@@ -284,9 +274,9 @@ export function SidebarContent({
 
       {/* Syncing indicator */}
       {isSyncing && (
-        <div className="text-sidebar-foreground mt-auto flex items-center gap-2 px-3 py-2 text-xs">
-          <Spinner />
-          Syncing data
+        <div className="text-sidebar-foreground bg-sidebar-border mt-auto flex w-fit items-center gap-2 rounded-2xl px-4 py-2">
+          <Spinner className="text-primary" />
+          <p className="text-sm">Syncing data</p>
         </div>
       )}
 
@@ -294,11 +284,7 @@ export function SidebarContent({
       {isPending && <GlobalSpinner />}
 
       {/* New task modal */}
-      <NewTaskModal
-        projects={projects}
-        open={newTaskOpen}
-        onClose={() => setNewTaskOpen(false)}
-      />
+      <NewTaskModal open={newTaskOpen} onClose={() => setNewTaskOpen(false)} />
 
       {/* Create dialog */}
       <ProjectFormDialog
@@ -326,17 +312,13 @@ export function SidebarContent({
 }
 
 type SidebarProps = {
-  projects: Project[];
   completedCount: number;
 };
 
-export function Sidebar({ projects, completedCount }: SidebarProps) {
+export function Sidebar({ completedCount }: SidebarProps) {
   return (
     <aside className="border-sidebar-border bg-sidebar hidden w-64 shrink-0 border-r md:flex md:flex-col">
-      <SidebarContent
-        initialProjects={projects}
-        completedCount={completedCount}
-      />
+      <SidebarContent completedCount={completedCount} />
     </aside>
   );
 }

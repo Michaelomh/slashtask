@@ -7,25 +7,25 @@ import {
   TaskEditor,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
-import { Project, Task } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { createTask } from '@/app/actions/tasks';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { SubTaskItem } from './subtask-item';
+import { useProjects } from '@/contexts/projects-context';
 
 type SubTaskSectionProps = {
-  projects: Project[];
   subTasks: Task[];
   parentTask: Task;
 };
 
 export function SubTaskSection({
   parentTask,
-  projects,
   subTasks: initialSubTasks,
 }: SubTaskSectionProps) {
+  const { projects } = useProjects();
   const [subTasks, setSubTasks] = useState<Task[]>(initialSubTasks);
 
   useEffect(() => {
@@ -76,7 +76,6 @@ export function SubTaskSection({
           key={subTask.id}
           task={subTask}
           project={projects.find((p) => p.id === subTask.project_id) ?? null}
-          projects={projects}
         />
       ))}
 
@@ -84,7 +83,6 @@ export function SubTaskSection({
         <div className="border-border mt-1 rounded-md border">
           <div className="px-3 pt-3 pb-2">
             <TaskEditor
-              projects={projects}
               initialValues={editorValues}
               onChange={setEditorValues}
               onSubmit={handleAddSubTask}

@@ -1,5 +1,5 @@
 import { NewTaskModal } from '@/components/new-task-modal';
-import { Task } from '@/lib/types';
+import { Task } from '@/lib/task';
 import { getDbClient } from '@/utils/supabase/action-client';
 
 async function InterceptedNewTaskPage({
@@ -10,13 +10,7 @@ async function InterceptedNewTaskPage({
   const { supabase, user } = await getDbClient();
   const { duplicate } = await searchParams;
 
-  const [projectsResult, duplicateResult] = await Promise.all([
-    supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_deleted', false)
-      .order('order', { ascending: true }),
+  const [duplicateResult] = await Promise.all([
     duplicate
       ? supabase
           .from('tasks')
@@ -31,7 +25,6 @@ async function InterceptedNewTaskPage({
 
   return (
     <NewTaskModal
-      projects={projectsResult.data ?? []}
       initialTask={(duplicateResult.data as Task) ?? undefined}
       open
     />

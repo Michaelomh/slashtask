@@ -7,30 +7,32 @@ import {
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
-import { Project, Task } from '@/lib/types';
+import { Project } from '@/lib/project';
+import { Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { Save, Trash2 } from 'lucide-react';
-import { deleteTask, deleteTaskWithSubtasks, restoreTasks, updateTask } from '@/app/actions/tasks';
+import {
+  deleteTask,
+  deleteTaskWithSubtasks,
+  restoreTasks,
+  updateTask,
+} from '@/app/actions/tasks';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 import { SubTaskSection } from './subtask-section';
+import { useProjects } from '@/contexts/projects-context';
 
 type EditTaskModalProps = {
   id: string;
   task: Task;
-  projects: Project[];
   subTasks: Task[];
 };
 
-export function EditTaskModal({
-  id,
-  task,
-  projects,
-  subTasks,
-}: EditTaskModalProps) {
+export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
   const router = useRouter();
+  const { projects } = useProjects();
 
   const initialValues: TaskEditorValues = {
     title: task.title,
@@ -80,9 +82,10 @@ export function EditTaskModal({
   async function handleDelete() {
     setDeleting(true);
     try {
-      const deletedIds = subTasks.length > 0
-        ? await deleteTaskWithSubtasks(id)
-        : await deleteTask(id).then(() => [id]);
+      const deletedIds =
+        subTasks.length > 0
+          ? await deleteTaskWithSubtasks(id)
+          : await deleteTask(id).then(() => [id]);
       router.back();
       toast('Task deleted', {
         action: {
@@ -105,17 +108,12 @@ export function EditTaskModal({
         >
           <div className="px-4 pt-4 pb-3">
             <TaskEditor
-              projects={projects}
               initialValues={initialValues}
               onChange={(v) => {
                 valuesRef.current = v;
               }}
             />
-            <SubTaskSection
-              subTasks={subTasks}
-              projects={projects}
-              parentTask={task}
-            />
+            <SubTaskSection subTasks={subTasks} parentTask={task} />
           </div>
 
           <div className="border-border flex items-center justify-between border-t px-4 py-3">
