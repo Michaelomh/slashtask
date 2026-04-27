@@ -2,20 +2,20 @@
 
 import { TaskToolbarDropdown } from '@/components/task-toolbar-dropdown';
 import { Button } from '@/components/ui/button';
+import { useProjects } from '@/contexts/projects-context';
 import { Project } from '@/lib/project';
 import { useEffect, useRef, useState } from 'react';
 
 type ProjectSelectorProps = {
-  projects: Project[];
   project: Project | null;
   onProjectChange: (p: Project | null) => void;
 };
 
 export function ProjectSelector({
-  projects,
   project,
   onProjectChange,
 }: ProjectSelectorProps) {
+  const { projects } = useProjects();
   const [isProjectOpen, setIsProjectOpen] = useState(false);
   const projectWrapperRef = useRef<HTMLDivElement>(null);
 

@@ -17,13 +17,14 @@ import { formatDueDate } from '@/lib/date';
 import { Spinner } from './ui/spinner';
 import { createTask } from '@/app/actions/tasks';
 import { TaskItem } from './task-item';
+import { useProjects } from '@/contexts/projects-context';
 
 type NoDueDateGroupProps = {
   tasks: Task[];
-  projects: Project[];
 };
 
-export function NoDueDateGroup({ tasks, projects }: NoDueDateGroupProps) {
+export function NoDueDateGroup({ tasks }: NoDueDateGroupProps) {
+  const { projects } = useProjects();
   if (tasks.length === 0) return null;
 
   return (
@@ -45,10 +46,10 @@ export function NoDueDateGroup({ tasks, projects }: NoDueDateGroupProps) {
 
 type OverdueGroupProps = {
   tasks: Task[];
-  projects: Project[];
 };
 
-export function OverdueGroup({ tasks, projects }: OverdueGroupProps) {
+export function OverdueGroup({ tasks }: OverdueGroupProps) {
+  const { projects } = useProjects();
   if (tasks.length === 0) return null;
 
   return (
@@ -72,10 +73,9 @@ export function OverdueGroup({ tasks, projects }: OverdueGroupProps) {
 type DateGroupProps = {
   group: TaskGroup;
   projectMap: Map<string, Project>;
-  projects: Project[];
 };
 
-export function DateGroup({ group, projectMap, projects }: DateGroupProps) {
+export function DateGroup({ group, projectMap }: DateGroupProps) {
   const { label, isOverdue } = formatDateHeading(group.date);
 
   return (
@@ -101,12 +101,12 @@ export function DateGroup({ group, projectMap, projects }: DateGroupProps) {
         })}
       </div>
 
-      <AddTaskComponent group={group} projects={projects} />
+      <AddTaskComponent group={group} />
     </div>
   );
 }
 
-export function TodayGroup({ group, projectMap, projects }: DateGroupProps) {
+export function TodayGroup({ group, projectMap }: DateGroupProps) {
   const { label } = formatDateHeading(group.date);
 
   return (
@@ -128,18 +128,12 @@ export function TodayGroup({ group, projectMap, projects }: DateGroupProps) {
         })}
       </div>
 
-      <AddTaskComponent group={group} projects={projects} />
+      <AddTaskComponent group={group} />
     </div>
   );
 }
 
-function AddTaskComponent({
-  group,
-  projects,
-}: {
-  group: TaskGroup;
-  projects: Project[];
-}) {
+function AddTaskComponent({ group }: { group: TaskGroup }) {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const initialValues: TaskEditorValues = {
     ...INITIAL_EMPTY_TASK,
@@ -176,14 +170,10 @@ function AddTaskComponent({
         <div className="border-border rounded-lg border">
           <div className="px-3 pt-3 pb-2">
             <TaskEditor
-              projects={projects}
               initialValues={initialValues}
               onChange={setValues}
               onSubmit={handleSubmit}
-              onCancel={() => {
-                console.log('called cancel');
-                setIsAddingTask(false);
-              }}
+              onCancel={() => setIsAddingTask(false)}
               autoFocus
             />
           </div>

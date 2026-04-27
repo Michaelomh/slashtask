@@ -20,5 +20,3 @@ export type Task = {
   sub_task_total?: number;
   sub_task_completed?: number;
 };
-
-

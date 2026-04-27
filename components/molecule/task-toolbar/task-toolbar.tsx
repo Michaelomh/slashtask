@@ -13,7 +13,6 @@ import { EffortSelector } from './effort-selector';
 // 'border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors cursor-pointer';
 
 type TaskToolbarProps = {
-  projects: Project[];
   project: Project | null;
   onProjectChange: (p: Project | null) => void;
   dueDate: Date | null;
@@ -26,7 +25,6 @@ type TaskToolbarProps = {
 };
 
 export function TaskToolbar({
-  projects,
   project,
   onProjectChange,
   dueDate,
@@ -44,11 +42,7 @@ export function TaskToolbar({
   return (
     <div className={cn('relative', className)}>
       <div className="flex flex-wrap items-center gap-2">
-        <ProjectSelector
-          projects={projects}
-          project={project}
-          onProjectChange={onProjectChange}
-        />
+        <ProjectSelector project={project} onProjectChange={onProjectChange} />
 
         <DueDateSelector value={dueDate} onChange={onDueDateChange} />
 

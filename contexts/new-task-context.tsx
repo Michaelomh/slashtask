@@ -25,7 +25,7 @@ export function useNewTask() {
   return useContext(NewTaskContext);
 }
 
-export function NewTaskProvider({ children }: { children: React.ReactNode }) {
+export function NewTaskProvider({ children }: React.PropsWithChildren) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 

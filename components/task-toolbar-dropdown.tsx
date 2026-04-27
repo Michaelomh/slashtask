@@ -1,10 +1,10 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 export type DropdownItem = {
-  id: string;
+  id: string | number;
   label: string;
   icon?: React.ReactNode;
 };

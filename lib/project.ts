@@ -12,4 +12,3 @@ export type Project = {
   // computed
   task_count?: number;
 };
-

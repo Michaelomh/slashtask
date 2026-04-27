@@ -1,5 +1,4 @@
 import { ProjectView } from '@/components/page/project-view';
-import { Project } from '@/lib/project';
 import { Task } from '@/lib/task';
 import { createClient } from '@/utils/supabase/server';
 import { Metadata } from 'next';
@@ -54,7 +53,7 @@ export default async function ProjectPage({
 
   const project = projectResult.data;
 
-  const [tasksResult, projectsResult] = await Promise.all([
+  const [tasksResult] = await Promise.all([
     supabase
       .from('tasks')
       .select('*')
@@ -64,11 +63,6 @@ export default async function ProjectPage({
       .eq('is_completed', false)
       .order('due_date', { ascending: true })
       .order('order', { ascending: true }),
-    supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', user!.id)
-      .eq('is_deleted', false),
   ]);
 
   const tasks: Task[] = ((tasksResult.data ?? []) as RawTask[]).map(
@@ -79,7 +73,6 @@ export default async function ProjectPage({
         sub_tasks?.filter((s) => !s.is_deleted && s.is_completed).length ?? 0,
     })
   );
-  const projects: Project[] = projectsResult.data ?? [];
 
   return (
     <div className="mx-auto max-w-200 px-4 py-8">
@@ -88,7 +81,13 @@ export default async function ProjectPage({
         <h1 className="text-xl font-semibold">{project.name}</h1>
       </div>
 
-      <ProjectView tasks={tasks} projects={projects} />
+      {tasks.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          No upcoming tasks in this project.
+        </p>
+      ) : (
+        <ProjectView tasks={tasks} />
+      )}
     </div>
   );
 }

@@ -14,14 +14,15 @@ import { TaskEditor, TaskEditorValues } from './molecule/task-editor';
 import { Spinner } from './ui/spinner';
 import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
 import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
+import { useProjects } from '@/contexts/projects-context';
 
 type SubTaskItemProps = {
   task: Task;
   project: Project | null;
-  projects: Project[];
 };
 
-export function SubTaskItem({ task, project, projects }: SubTaskItemProps) {
+export function SubTaskItem({ task, project }: SubTaskItemProps) {
+  const { projects } = useProjects();
   const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
   const [updatingSubTask, setUpdatingSubTask] = useState(false);
@@ -123,7 +124,6 @@ export function SubTaskItem({ task, project, projects }: SubTaskItemProps) {
         <div className="border-border mt-1 w-full rounded-md border">
           <div className="px-3 pt-3 pb-2">
             <TaskEditor
-              projects={projects}
               initialValues={editorValues}
               onChange={setEditorValues}
               onSubmit={handleUpdateSubTask}

@@ -30,7 +30,6 @@ export const INITIAL_EMPTY_TASK = {
 };
 
 type TaskEditorProps = {
-  projects: Project[];
   initialValues?: Partial<TaskEditorValues>;
   onChange: (values: TaskEditorValues) => void;
   onSubmit?: () => void;
@@ -41,7 +40,6 @@ type TaskEditorProps = {
 };
 
 export function TaskEditor({
-  projects,
   initialValues,
   onChange,
   onSubmit,
@@ -146,7 +144,6 @@ export function TaskEditor({
         placeholder="Description"
       />
       <TaskToolbar
-        projects={projects}
         project={project}
         onProjectChange={handleProjectChange}
         dueDate={dueDate}

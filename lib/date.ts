@@ -1,7 +1,6 @@
-
 /**
  * Takes the due_date string from database and format it to Date string.
- * 
+ *
  * @param dueDate - string | null from the database
  * @returns Date object of due date at start of day
  */

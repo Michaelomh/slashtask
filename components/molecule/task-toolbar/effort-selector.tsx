@@ -52,13 +52,13 @@ export function EffortSelector({
         onClick={() => setIsEffortOpen((v) => !v)}
         className="max-w-40"
       >
+        <span className="font-bold">{selectedEffort.icon}</span>
         <span className="truncate">{selectedEffort.label}</span>
       </Button>
       {isEffortOpen && (
         <TaskToolbarDropdown
           items={effortItems}
           onSelect={(i) => {
-            const item = effortItems[i];
             onEffortChange(i as EffortValues);
             setIsEffortOpen(false);
           }}

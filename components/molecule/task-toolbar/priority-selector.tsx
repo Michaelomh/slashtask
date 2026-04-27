@@ -3,6 +3,7 @@
 import { TaskToolbarDropdown } from '@/components/task-toolbar-dropdown';
 import { Button } from '@/components/ui/button';
 import { PRIORITIES, PriorityValues } from '@/lib/priority';
+import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 
 type PrioritySelectorProps = {
@@ -57,13 +58,15 @@ export function PrioritySelector({
         onClick={() => setIsPriorityOpen((v) => !v)}
         className="max-w-40"
       >
+        <span className={cn('font-bold', selectedPriority.color)}>
+          {selectedPriority.icon}
+        </span>
         <span className="truncate">{selectedPriority.label}</span>
       </Button>
       {isPriorityOpen && (
         <TaskToolbarDropdown
           items={priorityItems}
           onSelect={(i) => {
-            const item = priorityItems[i];
             onPriorityChange(i as PriorityValues);
             setIsPriorityOpen(false);
           }}

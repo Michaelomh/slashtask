@@ -18,7 +18,7 @@ export default async function UpcomingPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [tasksResult, projectsResult] = await Promise.all([
+  const [tasksResult] = await Promise.all([
     supabase
       .from('tasks')
       .select('*')
@@ -26,12 +26,6 @@ export default async function UpcomingPage() {
       .eq('is_deleted', false)
       .eq('is_completed', false)
       .order('due_date', { ascending: true })
-      .order('order', { ascending: true }),
-    supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', user!.id)
-      .eq('is_deleted', false)
       .order('order', { ascending: true }),
   ]);
 
@@ -43,12 +37,11 @@ export default async function UpcomingPage() {
         sub_tasks?.filter((s) => !s.is_deleted && s.is_completed).length ?? 0,
     })
   );
-  const projects = projectsResult.data ?? [];
 
   return (
     <div className="mx-auto max-w-200 px-4 py-8">
       <h1 className="mb-6 text-xl font-semibold">Upcoming</h1>
-      <UpcomingView tasks={tasks} projects={projects} />
+      <UpcomingView tasks={tasks} />
     </div>
   );
 }

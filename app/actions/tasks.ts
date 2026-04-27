@@ -102,7 +102,9 @@ export async function deleteTask(id: string): Promise<void> {
   revalidatePath('/', 'layout');
 }
 
-export async function deleteTaskWithSubtasks(parentId: string): Promise<string[]> {
+export async function deleteTaskWithSubtasks(
+  parentId: string
+): Promise<string[]> {
   const { supabase, user } = await getDbClient();
 
   const { data: subtasks, error: fetchError } = await supabase

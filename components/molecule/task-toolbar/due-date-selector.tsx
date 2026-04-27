@@ -34,7 +34,7 @@ export function DueDateSelector({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
+          'inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-sm transition-colors',
           value
             ? 'border-green-500/40 text-green-500 hover:border-green-500/60'
             : 'border-border text-muted-foreground hover:border-border/80 hover:text-foreground',

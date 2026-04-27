@@ -7,26 +7,23 @@ import {
   TodayGroup,
 } from '@/components/date-group';
 import { buildDateGroups } from '@/lib/task-grouping';
-import { Project } from '@/lib/project';
 import { Task } from '@/lib/task';
 import { addDays, isBefore, max, parseISO, startOfDay } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useProjects } from '@/contexts/projects-context';
 
 const DAYS_PER_PAGE = 7;
 const MIN_HORIZON_DAYS = 30;
 
 type UpcomingViewProps = {
   tasks: Task[];
-  projects: Project[];
 };
 
 const today = startOfDay(new Date());
 const defaultHorizon = addDays(today, MIN_HORIZON_DAYS);
 
-export function UpcomingView({
-  tasks: initialTasks,
-  projects,
-}: UpcomingViewProps) {
+export function UpcomingView({ tasks: initialTasks }: UpcomingViewProps) {
+  const { projects } = useProjects();
   const [tasks, setTasks] = useState(initialTasks);
   const [visibleCount, setVisibleCount] = useState(DAYS_PER_PAGE);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -94,20 +91,11 @@ export function UpcomingView({
 
   return (
     <>
-      <NoDueDateGroup tasks={noDueDateTasks} projects={projects} />
-      <OverdueGroup tasks={overdueTasks} projects={projects} />
-      <TodayGroup
-        group={todayGroup}
-        projectMap={projectMap}
-        projects={projects}
-      />
+      <NoDueDateGroup tasks={noDueDateTasks} />
+      <OverdueGroup tasks={overdueTasks} />
+      <TodayGroup group={todayGroup} projectMap={projectMap} />
       {visibleGroups.map((group) => (
-        <DateGroup
-          key={group.date}
-          group={group}
-          projectMap={projectMap}
-          projects={projects}
-        />
+        <DateGroup key={group.date} group={group} projectMap={projectMap} />
       ))}
       {hasMore && <div ref={sentinelRef} className="h-8" aria-hidden="true" />}
     </>

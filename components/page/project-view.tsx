@@ -6,22 +6,19 @@ import {
   OverdueGroup,
 } from '@/components/date-group';
 import { groupTasksByDate } from '@/lib/task-grouping';
-import { Project } from '@/lib/project';
 import { Task } from '@/lib/task';
 import { isBefore, parseISO, startOfDay } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
+import { useProjects } from '@/contexts/projects-context';
 
 const today = startOfDay(new Date());
 
 type ProjectViewProps = {
   tasks: Task[];
-  projects: Project[];
 };
 
-export function ProjectView({
-  tasks: initialTasks,
-  projects,
-}: ProjectViewProps) {
+export function ProjectView({ tasks: initialTasks }: ProjectViewProps) {
+  const { projects } = useProjects();
   const [tasks, setTasks] = useState(initialTasks);
 
   useEffect(() => {
@@ -58,31 +55,13 @@ export function ProjectView({
     [projects]
   );
 
-  const isEmpty =
-    noDueDateTasks.length === 0 &&
-    overdueTasks.length === 0 &&
-    groups.length === 0;
-
   return (
     <>
-      {isEmpty ? (
-        <p className="text-muted-foreground text-sm">
-          No upcoming tasks in this project.
-        </p>
-      ) : (
-        <>
-          <NoDueDateGroup tasks={noDueDateTasks} projects={projects} />
-          <OverdueGroup tasks={overdueTasks} projects={projects} />
-          {groups.map((group) => (
-            <DateGroup
-              key={group.date}
-              group={group}
-              projectMap={projectMap}
-              projects={projects}
-            />
-          ))}
-        </>
-      )}
+      <NoDueDateGroup tasks={noDueDateTasks} />
+      <OverdueGroup tasks={overdueTasks} />
+      {groups.map((group) => (
+        <DateGroup key={group.date} group={group} projectMap={projectMap} />
+      ))}
     </>
   );
 }

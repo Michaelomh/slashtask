@@ -1,3 +1,4 @@
+import { CompletedView } from '@/components/page/completed-view';
 import { TaskItem } from '@/components/task-item';
 import { Task } from '@/lib/task';
 import { createClient } from '@/utils/supabase/server';
@@ -18,21 +19,15 @@ export default async function CompletedPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [tasksResult, projectsResult] = await Promise.all([
+  const [tasksResult] = await Promise.all([
     supabase
       .from('tasks')
       .select('*, sub_tasks:tasks!parent_task_id(id,is_completed,is_deleted)')
       .eq('user_id', user!.id)
       .eq('is_deleted', false)
       .eq('is_completed', true)
-      .is('parent_task_id', null)
       .not('completed_at', 'is', null)
       .order('completed_at', { ascending: false }),
-    supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', user!.id)
-      .eq('is_deleted', false),
   ]);
 
   const completedTasks: Task[] = ((tasksResult.data ?? []) as RawTask[]).map(
@@ -43,29 +38,14 @@ export default async function CompletedPage() {
         sub_tasks?.filter((s) => !s.is_deleted && s.is_completed).length ?? 0,
     })
   );
-  const projects = projectsResult.data ?? [];
 
   return (
     <div className="mx-auto max-w-200 px-4 py-8">
       <h1 className="mb-6 text-xl font-semibold">Completed</h1>
-
       {completedTasks.length === 0 ? (
         <p className="text-muted-foreground text-sm">No completed tasks yet.</p>
       ) : (
-        <div className="flex flex-col">
-          {completedTasks.map((task) => {
-            const project =
-              projects.find((p) => p.id === task.project_id) ?? null;
-            return (
-              <TaskItem
-                key={task.id}
-                task={task}
-                project={project}
-                variant="completed"
-              />
-            );
-          })}
-        </div>
+        <CompletedView tasks={completedTasks} />
       )}
     </div>
   );
