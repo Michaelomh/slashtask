@@ -3,12 +3,8 @@
 import { RichTextEditor } from '@/components/molecule/rich-text-editor';
 import { TaskToolbar } from '@/components/molecule/task-toolbar/task-toolbar';
 import { TitleInput } from '@/components/title-input';
-import { useEffortShortcut } from '@/hooks/use-effort-shortcut';
-import { useProjectShortcut } from '@/hooks/use-project-shortcut';
-import { usePriorityShortcut } from '@/hooks/use-priority-shortcut';
-import { parseDateToken, removeTriggerToken } from '@/lib/shortcut-parser';
 import { Project } from '@/lib/project';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
 import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
@@ -54,8 +50,6 @@ export function TaskEditor({
   titlePlaceholder = 'Task name',
   className,
 }: TaskEditorProps) {
-  const titleInputRef = useRef<HTMLInputElement>(null);
-
   const [title, setTitle] = useState(initialValues?.title ?? '');
   const [description, setDescription] = useState(
     initialValues?.description ?? ''
@@ -63,10 +57,9 @@ export function TaskEditor({
   const [descriptionPlain, setDescriptionPlain] = useState(
     initialValues?.descriptionPlain ?? ''
   );
-  const [pickerDate, setPickerDate] = useState<Date | null>(
+  const [dueDate, setDueDate] = useState<Date | null>(
     initialValues?.dueDate ?? null
   );
-  const [lastSource, setLastSource] = useState<'picker' | 'shortcut'>('picker');
   const [priority, setPriority] = useState(
     initialValues?.priority ?? DEFAULT_PRIORITY_INDEX
   );
@@ -77,24 +70,8 @@ export function TaskEditor({
     initialValues?.project ?? null
   );
 
-  const projectShortcut = useProjectShortcut(projects);
-  const priorityShortcut = usePriorityShortcut();
-  const effortShortcut = useEffortShortcut();
-
-  const token = useMemo(() => parseDateToken(title, new Date()), [title]);
-  const prevTokenText = useRef<string | null>(null);
-  useEffect(() => {
-    if (token?.text !== prevTokenText.current) {
-      prevTokenText.current = token?.text ?? null;
-      if (token) setLastSource('shortcut');
-    }
-  }, [token]);
-
-  const effectiveDueDate =
-    lastSource === 'shortcut' && token ? token.date : pickerDate;
-
   // Fires onChange with current state, applying any in-flight overrides to avoid stale closures.
-  function emit(overrides: Partial<TaskEditorValues> = {}) {
+  function handleOnChange(overrides: Partial<TaskEditorValues> = {}) {
     onChange({
       title,
       description,
@@ -102,98 +79,63 @@ export function TaskEditor({
       priority,
       effort,
       project,
-      dueDate: effectiveDueDate,
+      dueDate,
       ...overrides,
     });
   }
 
   function handleTitleChange(val: string) {
     setTitle(val);
-    emit({ title: val });
+    handleOnChange({ title: val });
   }
 
-  function handleDescriptionChange(md: string, plain: string) {
-    setDescription(md);
-    setDescriptionPlain(plain);
-    emit({ description: md, descriptionPlain: plain });
+  function handleDescriptionChange(
+    description: string,
+    descriptionPlain: string
+  ) {
+    setDescription(description);
+    setDescriptionPlain(descriptionPlain);
+    handleOnChange({ description, descriptionPlain });
   }
 
-  function handleProjectChange(p: Project | null) {
-    setProject(p);
-    emit({ project: p });
+  function handleProjectChange(project: Project | null) {
+    setProject(project);
+    handleOnChange({ project });
   }
 
-  function handleDueDateChange(d: Date | null) {
-    setPickerDate(d);
-    setLastSource('picker');
-    emit({ dueDate: d });
+  function handleDueDateChange(dueDate: Date | null) {
+    setDueDate(dueDate);
+    handleOnChange({ dueDate });
   }
 
-  function handlePriorityChange(v: number) {
-    setPriority(v);
-    emit({ priority: v });
+  function handlePriorityChange(priority: number) {
+    setPriority(priority);
+    handleOnChange({ priority });
   }
 
-  function handleEffortChange(v: number) {
-    setEffort(v);
-    emit({ effort: v });
+  function handleEffortChange(effort: number) {
+    setEffort(effort);
+    handleOnChange({ effort });
   }
 
   function handleSubmit() {
     if (!title.trim()) return;
-    const cleanTitle = token
-      ? removeTriggerToken(title, token.start, token.end)
-      : title;
-    setTitle(cleanTitle);
-    emit({ title: cleanTitle });
+    setTitle(title);
     onSubmit?.();
   }
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       <TitleInput
-        ref={titleInputRef}
         autoFocus={autoFocus}
         value={title}
-        highlight={token ? { start: token.start, end: token.end } : null}
         placeholder={titlePlaceholder}
         inputClassName="placeholder:text-muted-foreground/50 w-full bg-transparent text-lg font-medium focus:outline-none"
         onChange={(e) => {
           const val = e.target.value;
-          const pos = e.target.selectionStart ?? 0;
           handleTitleChange(val);
-          projectShortcut.onInputChange(val, pos);
-          priorityShortcut.onInputChange(val, pos);
-          effortShortcut.onInputChange(val, pos);
         }}
         onKeyDown={(e) => {
-          const projectResult = projectShortcut.onKeyDown(e, title);
-          if (projectResult.consumed) {
-            if (projectResult.confirm) {
-              handleTitleChange(projectResult.confirm.newTitle);
-              handleProjectChange(projectResult.confirm.project);
-            } else if (projectResult.clearedTitle !== undefined)
-              handleTitleChange(projectResult.clearedTitle);
-            return;
-          }
-          const priorityResult = priorityShortcut.onKeyDown(e, title);
-          if (priorityResult.consumed) {
-            if (priorityResult.confirm) {
-              handleTitleChange(priorityResult.confirm.newTitle);
-              handlePriorityChange(priorityResult.confirm.value);
-            } else if (priorityResult.clearedTitle !== undefined)
-              handleTitleChange(priorityResult.clearedTitle);
-            return;
-          }
-          const effortResult = effortShortcut.onKeyDown(e, title);
-          if (effortResult.consumed) {
-            if (effortResult.confirm) {
-              handleTitleChange(effortResult.confirm.newTitle);
-              handleEffortChange(effortResult.confirm.value);
-            } else if (effortResult.clearedTitle !== undefined)
-              handleTitleChange(effortResult.clearedTitle);
-            return;
-          }
           if (e.key === 'Enter') handleSubmit();
           if (e.key === 'Escape') onCancel?.();
         }}
@@ -207,18 +149,12 @@ export function TaskEditor({
         projects={projects}
         project={project}
         onProjectChange={handleProjectChange}
-        effectiveDueDate={effectiveDueDate}
+        dueDate={dueDate}
         onDueDateChange={handleDueDateChange}
         priority={priority}
         onPriorityChange={handlePriorityChange}
         effort={effort}
         onEffortChange={handleEffortChange}
-        title={title}
-        onTitleChange={handleTitleChange}
-        titleInputRef={titleInputRef}
-        projectShortcut={projectShortcut}
-        priorityShortcut={priorityShortcut}
-        effortShortcut={effortShortcut}
       />
     </div>
   );

@@ -1,18 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { Project } from '@/lib/project';
 import { Task } from '@/lib/task';
 import { formatDateHeading, TaskGroup } from '@/lib/task-grouping';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { DraggableTaskItem, SortableTaskItem } from './sortable-task-item';
 import { Button } from './ui/button';
 import {
   INITIAL_EMPTY_TASK,
@@ -22,6 +16,7 @@ import {
 import { formatDueDate } from '@/lib/date';
 import { Spinner } from './ui/spinner';
 import { createTask } from '@/app/actions/tasks';
+import { TaskItem } from './task-item';
 
 type NoDueDateGroupProps = {
   tasks: Task[];
@@ -41,14 +36,7 @@ export function NoDueDateGroup({ tasks, projects }: NoDueDateGroupProps) {
         {tasks.map((task) => {
           const project =
             projects.find((p) => p.id === task.project_id) ?? null;
-          return (
-            <DraggableTaskItem
-              key={task.id}
-              task={task}
-              project={project}
-              containerId="no-due-date"
-            />
-          );
+          return <TaskItem key={task.id} task={task} project={project} />;
         })}
       </div>
     </div>
@@ -74,9 +62,7 @@ export function OverdueGroup({ tasks, projects }: OverdueGroupProps) {
         {tasks.map((task) => {
           const project =
             projects.find((p) => p.id === task.project_id) ?? null;
-          return (
-            <DraggableTaskItem key={task.id} task={task} project={project} />
-          );
+          return <TaskItem key={task.id} task={task} project={project} />;
         })}
       </div>
     </div>
@@ -91,8 +77,6 @@ type DateGroupProps = {
 
 export function DateGroup({ group, projectMap, projects }: DateGroupProps) {
   const { label, isOverdue } = formatDateHeading(group.date);
-  const { setNodeRef, isOver } = useDroppable({ id: group.date });
-  const taskIds = group.tasks.map((t) => t.id);
 
   return (
     <div className="mb-6">
@@ -105,29 +89,17 @@ export function DateGroup({ group, projectMap, projects }: DateGroupProps) {
         <div className="bg-border h-px flex-1" />
       </div>
 
-      <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          className={`flex flex-col rounded transition-colors ${isOver ? 'bg-accent/30' : ''}`}
-        >
-          {group.tasks.map((task) => {
-            const project = task.project_id
-              ? projectMap.get(task.project_id)
-              : null;
+      <div className={`flex flex-col rounded transition-colors`}>
+        {group.tasks.map((task) => {
+          const project = task.project_id
+            ? projectMap.get(task.project_id)
+            : null;
 
-            return (
-              <SortableTaskItem
-                key={task.id}
-                task={task}
-                project={project || null}
-                containerId={group.date}
-              />
-            );
-          })}
-          {/* Spacer so empty groups remain droppable */}
-          {group.tasks.length === 0 && <div className="h-1" />}
-        </div>
-      </SortableContext>
+          return (
+            <TaskItem key={task.id} task={task} project={project || null} />
+          );
+        })}
+      </div>
 
       <AddTaskComponent group={group} projects={projects} />
     </div>
@@ -136,8 +108,6 @@ export function DateGroup({ group, projectMap, projects }: DateGroupProps) {
 
 export function TodayGroup({ group, projectMap, projects }: DateGroupProps) {
   const { label } = formatDateHeading(group.date);
-  const { setNodeRef, isOver } = useDroppable({ id: group.date });
-  const taskIds = group.tasks.map((t) => t.id);
 
   return (
     <div className="mb-6">
@@ -146,29 +116,17 @@ export function TodayGroup({ group, projectMap, projects }: DateGroupProps) {
         <div className="bg-border h-px flex-1" />
       </div>
 
-      <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          className={`flex flex-col rounded transition-colors ${isOver ? 'bg-accent/30' : ''}`}
-        >
-          {group.tasks.map((task) => {
-            const project = task.project_id
-              ? projectMap.get(task.project_id)
-              : null;
+      <div className={`flex flex-col rounded transition-colors`}>
+        {group.tasks.map((task) => {
+          const project = task.project_id
+            ? projectMap.get(task.project_id)
+            : null;
 
-            return (
-              <SortableTaskItem
-                key={task.id}
-                task={task}
-                project={project || null}
-                containerId={group.date}
-              />
-            );
-          })}
-          {/* Spacer so empty groups remain droppable */}
-          {group.tasks.length === 0 && <div className="h-1" />}
-        </div>
-      </SortableContext>
+          return (
+            <TaskItem key={task.id} task={task} project={project || null} />
+          );
+        })}
+      </div>
 
       <AddTaskComponent group={group} projects={projects} />
     </div>

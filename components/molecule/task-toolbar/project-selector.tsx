@@ -2,7 +2,6 @@
 
 import { TaskToolbarDropdown } from '@/components/task-toolbar-dropdown';
 import { Button } from '@/components/ui/button';
-import { useProjectShortcut } from '@/hooks/use-project-shortcut';
 import { Project } from '@/lib/project';
 import { useEffect, useRef, useState } from 'react';
 
@@ -10,21 +9,12 @@ type ProjectSelectorProps = {
   projects: Project[];
   project: Project | null;
   onProjectChange: (p: Project | null) => void;
-  title: string;
-  onTitleChange: (v: string) => void;
-
-  projectShortcut: ReturnType<typeof useProjectShortcut>;
-  titleInputRef: RefObject<HTMLInputElement | null>;
 };
 
 export function ProjectSelector({
   projects,
   project,
   onProjectChange,
-  onTitleChange,
-  title,
-  projectShortcut,
-  titleInputRef,
 }: ProjectSelectorProps) {
   const [isProjectOpen, setIsProjectOpen] = useState(false);
   const projectWrapperRef = useRef<HTMLDivElement>(null);
@@ -58,7 +48,7 @@ export function ProjectSelector({
         <span className="font-bold" style={{ color: p.color }}>
           {p.emoji}
         </span>
-      ),
+      ) as React.ReactNode,
     })),
   ];
 
@@ -82,33 +72,9 @@ export function ProjectSelector({
         )}
       </Button>
 
-      {projectShortcut.isOpen && (
-        <TaskToolbarDropdown
-          items={projectShortcut.filteredProjects.map((p) => ({
-            id: p.id,
-            label: p.name,
-            icon: p.emoji && (
-              <span className="font-bold" style={{ color: p.color }}>
-                {p.emoji}
-              </span>
-            ),
-          }))}
-          highlightIndex={projectShortcut.highlightIndex}
-          onSelect={(i) => {
-            const result = projectShortcut.confirmAt(i, title);
-            if (result) {
-              onTitleChange(result.newTitle);
-              onProjectChange(result.project);
-            }
-            titleInputRef.current?.focus();
-          }}
-        />
-      )}
-
       {isProjectOpen && (
         <TaskToolbarDropdown
           items={projectItems}
-          highlightIndex={-1}
           onSelect={(i) => {
             const item = projectItems[i];
             onProjectChange(

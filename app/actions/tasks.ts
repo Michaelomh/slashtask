@@ -86,12 +86,6 @@ export async function updateTask(
   return data as Task;
 }
 
-type ReorderItem = {
-  id: string;
-  order: number;
-  due_date?: string | null;
-};
-
 export async function deleteTask(id: string): Promise<void> {
   const { supabase, user } = await getDbClient();
 
@@ -154,28 +148,5 @@ export async function restoreTasks(ids: string[]): Promise<void> {
     throw new Error('Failed to restore tasks');
   }
 
-  revalidatePath('/', 'layout');
-}
-
-export async function reorderTasks(items: ReorderItem[]): Promise<void> {
-  const { supabase, user } = await getDbClient();
-
-  const results = await Promise.all(
-    items.map(({ id, order, due_date }) => {
-      const update: Record<string, unknown> = { order };
-      if (due_date !== undefined) update.due_date = due_date;
-      return supabase
-        .from('tasks')
-        .update(update)
-        .eq('id', id)
-        .eq('user_id', user.id);
-    })
-  );
-
-  const failed = results.find((r) => r.error);
-  if (failed?.error) {
-    console.error('[reorderTasks]', failed.error);
-    throw new Error('Failed to reorder tasks');
-  }
   revalidatePath('/', 'layout');
 }

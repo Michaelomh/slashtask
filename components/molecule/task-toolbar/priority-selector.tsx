@@ -46,7 +46,7 @@ export function PrioritySelector({
       <span className="font-bold" style={{ color: p.color }}>
         {p.icon}
       </span>
-    ),
+    ) as React.ReactNode,
   }));
 
   return (
@@ -62,7 +62,6 @@ export function PrioritySelector({
       {isPriorityOpen && (
         <TaskToolbarDropdown
           items={priorityItems}
-          highlightIndex={-1}
           onSelect={(i) => {
             const item = priorityItems[i];
             onPriorityChange(i as PriorityValues);

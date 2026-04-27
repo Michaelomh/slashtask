@@ -9,6 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Project } from '@/lib/project';
+import { useNewTask } from '@/contexts/new-task-context';
 import { cn, toKebabCase } from '@/lib/utils';
 import {
   CalendarDays,
@@ -46,7 +47,7 @@ export function SidebarContent({
   const [isSyncing, startSyncTransition] = useTransition();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const { open: newTaskOpen, setOpen: setNewTaskOpen } = useNewTask();
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
 

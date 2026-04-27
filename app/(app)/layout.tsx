@@ -1,3 +1,4 @@
+import { AppProviders } from '@/components/layout/app-providers';
 import { MobileHeader } from '@/components/layout/mobile-header';
 import { Sidebar } from '@/components/layout/sidebar';
 import { createClient } from '@/utils/supabase/server';
@@ -55,20 +56,22 @@ export default async function AppLayout({
   }));
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <Suspense fallback={null}>
-        <Sidebar projects={projectList} completedCount={completedCount ?? 0} />
-      </Suspense>
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <AppProviders>
+      <div className="flex flex-1 overflow-hidden">
         <Suspense fallback={null}>
-          <MobileHeader
-            projects={projectList}
-            completedCount={completedCount ?? 0}
-          />
+          <Sidebar projects={projectList} completedCount={completedCount ?? 0} />
         </Suspense>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Suspense fallback={null}>
+            <MobileHeader
+              projects={projectList}
+              completedCount={completedCount ?? 0}
+            />
+          </Suspense>
+          <main className="flex-1 overflow-y-auto">{children}</main>
+        </div>
+        {modal}
       </div>
-      {modal}
-    </div>
+    </AppProviders>
   );
 }

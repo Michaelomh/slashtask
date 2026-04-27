@@ -11,23 +11,14 @@ export type DropdownItem = {
 
 type TaskToolbarDropdownProps = {
   items: DropdownItem[];
-  highlightIndex: number;
   onSelect: (index: number) => void;
 };
 
 export function TaskToolbarDropdown({
   items,
-  highlightIndex,
   onSelect,
 }: TaskToolbarDropdownProps) {
   const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const item = list.children[highlightIndex] as HTMLElement | undefined;
-    item?.scrollIntoView({ block: 'nearest' });
-  }, [highlightIndex]);
 
   if (items.length === 0) {
     return (
@@ -50,9 +41,7 @@ export function TaskToolbarDropdown({
           title={item.label}
           className={cn(
             'flex cursor-pointer items-center gap-2 px-3 py-2 text-sm',
-            i === highlightIndex
-              ? 'bg-accent text-accent-foreground'
-              : 'text-foreground hover:bg-accent/50'
+            'text-foreground hover:bg-accent/50'
           )}
           // preventDefault keeps focus in the <input>
           onMouseDown={(e) => {
