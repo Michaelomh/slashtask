@@ -33,11 +33,8 @@ const navLinks = [
   { href: '/completed', label: 'Completed', icon: CheckCircle2 },
 ];
 
-type SidebarContentProps = {
-  completedCount: number;
-};
-
-export function SidebarContent({ completedCount }: SidebarContentProps) {
+export function SidebarContent() {
+  const { completedCount } = useProjects();
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -313,14 +310,10 @@ export function SidebarContent({ completedCount }: SidebarContentProps) {
   );
 }
 
-type SidebarProps = {
-  completedCount: number;
-};
-
-export function Sidebar({ completedCount }: SidebarProps) {
+export function Sidebar() {
   return (
     <aside className="border-sidebar-border bg-sidebar hidden w-64 shrink-0 border-r md:flex md:flex-col">
-      <SidebarContent completedCount={completedCount} />
+      <SidebarContent />
     </aside>
   );
 }

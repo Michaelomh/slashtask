@@ -13,11 +13,7 @@ function usePageTitle() {
   return 'SlashTask';
 }
 
-type MobileHeaderProps = {
-  completedCount: number;
-};
-
-export function MobileHeader({ completedCount }: MobileHeaderProps) {
+export function MobileHeader() {
   const title = usePageTitle();
 
   return (
@@ -28,7 +24,7 @@ export function MobileHeader({ completedCount }: MobileHeaderProps) {
           <span className="sr-only">Open menu</span>
         </SheetTrigger>
         <SheetContent side="left" className="bg-sidebar w-64 p-0">
-          <SidebarContent completedCount={completedCount} />
+          <SidebarContent />
         </SheetContent>
       </Sheet>
       <span className="text-sm font-semibold">{title}</span>

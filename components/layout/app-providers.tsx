@@ -10,10 +10,14 @@ type AppProvidersType = ProjectsProviderType;
 
 export function AppProviders({
   initialProjects,
+  initialCompletedCount,
   children,
 }: React.PropsWithChildren<AppProvidersType>) {
   return (
-    <ProjectsProvider initialProjects={initialProjects}>
+    <ProjectsProvider
+      initialProjects={initialProjects}
+      initialCompletedCount={initialCompletedCount}
+    >
       <NewTaskProvider>{children}</NewTaskProvider>
     </ProjectsProvider>
   );

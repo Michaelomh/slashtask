@@ -42,7 +42,8 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
     console.error('[createTask]', error);
     throw new Error('Failed to create task');
   }
-  revalidatePath('/', 'layout');
+  revalidatePath('/', 'page');
+  revalidatePath('/project/[slug]', 'page');
   return data as Task;
 }
 
@@ -82,7 +83,9 @@ export async function updateTask(
     console.error('[updateTask]', error);
     throw new Error('Failed to update task');
   }
-  revalidatePath('/', 'layout');
+  revalidatePath('/', 'page');
+  revalidatePath('/completed', 'page');
+  revalidatePath('/project/[slug]', 'page');
   return data as Task;
 }
 
@@ -99,7 +102,9 @@ export async function deleteTask(id: string): Promise<void> {
     console.error('[deleteTask]', error);
     throw new Error('Failed to delete task');
   }
-  revalidatePath('/', 'layout');
+  revalidatePath('/', 'page');
+  revalidatePath('/completed', 'page');
+  revalidatePath('/project/[slug]', 'page');
 }
 
 export async function deleteTaskWithSubtasks(
@@ -132,7 +137,9 @@ export async function deleteTaskWithSubtasks(
     throw new Error('Failed to delete task');
   }
 
-  revalidatePath('/', 'layout');
+  revalidatePath('/', 'page');
+  revalidatePath('/completed', 'page');
+  revalidatePath('/project/[slug]', 'page');
   return ids;
 }
 
@@ -150,5 +157,7 @@ export async function restoreTasks(ids: string[]): Promise<void> {
     throw new Error('Failed to restore tasks');
   }
 
-  revalidatePath('/', 'layout');
+  revalidatePath('/', 'page');
+  revalidatePath('/completed', 'page');
+  revalidatePath('/project/[slug]', 'page');
 }

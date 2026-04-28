@@ -138,3 +138,15 @@ const tasks = taskFactory.buildList(3)
 ```
 
 Always use factories instead of defining raw mock objects inline in test files.
+
+### Validating a New Factory
+After creating a new factory, run the tests for the file that uses it to confirm it works before continuing.
+
+## Running Tests
+Always run only the tests for the file that was changed, not the full suite.
+
+```bash
+pnpm test --run __tests__/lib/task.test.ts
+```
+
+Only run `pnpm test --run` (all tests) when explicitly asked.

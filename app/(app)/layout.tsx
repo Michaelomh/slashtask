@@ -42,14 +42,17 @@ export default async function AppLayout({
   }));
 
   return (
-    <AppProviders initialProjects={projectList}>
+    <AppProviders
+      initialProjects={projectList}
+      initialCompletedCount={completedCount ?? 0}
+    >
       <div className="flex flex-1 overflow-hidden">
         <Suspense fallback={null}>
-          <Sidebar completedCount={completedCount ?? 0} />
+          <Sidebar />
         </Suspense>
         <div className="flex flex-1 flex-col overflow-hidden">
           <Suspense fallback={null}>
-            <MobileHeader completedCount={completedCount ?? 0} />
+            <MobileHeader />
           </Suspense>
           <main
             className="flex-1 overflow-y-auto"

@@ -7,7 +7,6 @@ import {
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
-import { Project } from '@/lib/project';
 import { Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { Save, Trash2 } from 'lucide-react';
@@ -32,7 +31,11 @@ type EditTaskModalProps = {
 
 export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
   const router = useRouter();
-  const { projects } = useProjects();
+  const { projects, adjustProjectTaskCount, adjustCompletedCount } =
+    useProjects();
+  const [deleting, setDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const initialValues: TaskEditorValues = {
     title: task.title,
@@ -44,14 +47,18 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
     dueDate: task.due_date ? new Date(task.due_date + 'T00:00:00') : null,
   };
 
+  // use ref is the right call, since it's not react and we only need values on submit.
   const valuesRef = useRef<TaskEditorValues>(initialValues);
-  const [deleting, setDeleting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   async function handleSave() {
     const v = valuesRef.current;
     setIsSaving(true);
+    const oldProjectId = task.project_id ?? null;
+    const newProjectId = v.project?.id ?? null;
+    if (oldProjectId !== newProjectId && !task.is_completed) {
+      adjustProjectTaskCount(oldProjectId, -1);
+      adjustProjectTaskCount(newProjectId, 1);
+    }
     try {
       await updateTask(id, {
         title: v.title.trim(),
@@ -59,12 +66,16 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
         description_text: v.descriptionPlain.slice(0, 500),
         priority: v.priority,
         effort: v.effort,
-        project_id: v.project?.id ?? null,
+        project_id: newProjectId,
         due_date: v.dueDate ? format(v.dueDate, 'yyyy-MM-dd') : null,
       });
       router.back();
       toast.success('Task saved');
     } catch {
+      if (oldProjectId !== newProjectId && !task.is_completed) {
+        adjustProjectTaskCount(oldProjectId, 1);
+        adjustProjectTaskCount(newProjectId, -1);
+      }
       toast.error('Failed to save task');
     } finally {
       setIsSaving(false);
@@ -81,6 +92,24 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
 
   async function handleDelete() {
     setDeleting(true);
+    const allTasks = [task, ...subTasks];
+    const incompleteTasks = allTasks.filter((t) => !t.is_completed);
+    const completedTaskCount = allTasks.length - incompleteTasks.length;
+    const projectDelta = new Map<string, number>();
+    for (const t of incompleteTasks) {
+      if (t.project_id)
+        projectDelta.set(
+          t.project_id,
+          (projectDelta.get(t.project_id) ?? 0) - 1
+        );
+    }
+    for (const [projectId, delta] of projectDelta) {
+      adjustProjectTaskCount(projectId, delta);
+    }
+    if (completedTaskCount > 0) {
+      adjustCompletedCount(-completedTaskCount);
+    }
+
     try {
       const deletedIds =
         subTasks.length > 0
@@ -95,6 +124,12 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
         },
       });
     } catch {
+      for (const [projectId, delta] of projectDelta) {
+        adjustProjectTaskCount(projectId, -delta);
+      }
+      if (completedTaskCount > 0) {
+        adjustCompletedCount(+completedTaskCount);
+      }
       toast.error('Failed to delete task');
       setDeleting(false);
     }

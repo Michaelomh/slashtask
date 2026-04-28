@@ -8,8 +8,9 @@ import {
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
-import { Task } from '@/lib/task';
+import { truncateDescriptionText, Task } from '@/lib/task';
 import { format } from 'date-fns';
+import { useProjects } from '@/contexts/projects-context';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -29,6 +30,7 @@ export function NewTaskModal({
   onClose,
 }: NewTaskModalProps) {
   const router = useRouter();
+  const { adjustProjectTaskCount } = useProjects();
 
   const initialValues: TaskEditorValues = {
     title: initialTask ? initialTask.title : '',
@@ -54,12 +56,14 @@ export function NewTaskModal({
   async function handleSubmit() {
     if (!values.title.trim() || saving) return;
     setSaving(true);
+    const projectId = values.project?.id ?? null;
+    adjustProjectTaskCount(projectId, 1);
     try {
       await createTask({
         title: values.title.trim(),
         description: values.description.trim() || null,
-        description_text: values.descriptionPlain.trim().slice(0, 500) || null,
-        project_id: values.project?.id ?? null,
+        description_text: truncateDescriptionText(values.descriptionPlain),
+        project_id: projectId,
         priority: values.priority,
         effort: values.effort,
         due_date: values.dueDate ? format(values.dueDate, 'yyyy-MM-dd') : null,
@@ -67,6 +71,7 @@ export function NewTaskModal({
       handleClose();
       router.refresh();
     } catch {
+      adjustProjectTaskCount(projectId, -1);
       toast.error('Failed to create task');
       setSaving(false);
     }

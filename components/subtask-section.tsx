@@ -7,7 +7,7 @@ import {
   TaskEditor,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
-import { Task } from '@/lib/task';
+import { truncateDescriptionText, Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { createTask } from '@/app/actions/tasks';
@@ -25,7 +25,7 @@ export function SubTaskSection({
   parentTask,
   subTasks: initialSubTasks,
 }: SubTaskSectionProps) {
-  const { projects } = useProjects();
+  const { projects, adjustProjectTaskCount } = useProjects();
   const [subTasks, setSubTasks] = useState<Task[]>(initialSubTasks);
 
   useEffect(() => {
@@ -44,6 +44,8 @@ export function SubTaskSection({
   async function handleAddSubTask() {
     if (!editorValues.title.trim() || savingSubTask) return;
     setSavingSubTask(true);
+    const projectId = editorValues.project?.id ?? null;
+    adjustProjectTaskCount(projectId, 1);
     try {
       const created = await createTask({
         title: editorValues.title.trim(),
@@ -53,15 +55,17 @@ export function SubTaskSection({
         due_date: editorValues.dueDate
           ? format(editorValues.dueDate, 'yyyy-MM-dd')
           : null,
-        project_id: editorValues.project?.id ?? null,
+        project_id: projectId,
         description: editorValues.description.trim() || null,
-        description_text:
-          editorValues.descriptionPlain.trim().slice(0, 500) || null,
+        description_text: truncateDescriptionText(
+          editorValues.descriptionPlain
+        ),
       });
       setSubTasks((prev) => [...prev, created]);
       setAddingSubTask(false);
       toast.success('Sub-task created');
     } catch {
+      adjustProjectTaskCount(projectId, -1);
       toast.error('Failed to add sub-task');
     } finally {
       setSavingSubTask(false);

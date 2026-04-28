@@ -2,9 +2,9 @@
 
 import { deleteTask, updateTask } from '@/app/actions/tasks';
 import { Project } from '@/lib/project';
-import { Task } from '@/lib/task';
+import { isTaskOverdue, truncateDescriptionText, Task } from '@/lib/task';
 import { cn } from '@/lib/utils';
-import { isPast, startOfDay, addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { CheckCircle2, Circle, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -15,6 +15,7 @@ import { Spinner } from './ui/spinner';
 import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
 import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
 import { useProjects } from '@/contexts/projects-context';
+import { fireConfetti } from '@/lib/animation';
 
 type SubTaskItemProps = {
   task: Task;
@@ -22,7 +23,8 @@ type SubTaskItemProps = {
 };
 
 export function SubTaskItem({ task, project }: SubTaskItemProps) {
-  const { projects } = useProjects();
+  const { projects, adjustProjectTaskCount, adjustCompletedCount } =
+    useProjects();
   const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
   const [updatingSubTask, setUpdatingSubTask] = useState(false);
@@ -38,45 +40,43 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
     project: projects.find((p) => p.id === task.project_id) ?? null,
   });
 
-  const isOverdue =
-    task.due_date !== null &&
-    isPast(startOfDay(addDays(new Date(task.due_date), 1))) &&
-    !completed;
+  const isOverdue = isTaskOverdue(task, completed);
 
-  function fireConfetti() {
-    import('canvas-confetti').then((mod) => {
-      const confetti = mod.default as (opts: Record<string, unknown>) => void;
-      const shared = {
-        particleCount: 80,
-        spread: 55,
-        startVelocity: 55,
-        decay: 0.92,
-        ticks: 200,
-        origin: { y: 0.6 },
-        disableForReducedMotion: true,
-      };
-      confetti({ ...shared, angle: 60, origin: { x: 0, y: 0.6 } });
-      confetti({ ...shared, angle: 120, origin: { x: 1, y: 0.6 } });
-    });
-  }
-
-  async function handleToggle(e: React.MouseEvent) {
+  async function handleCompleteTask(e: React.MouseEvent) {
     e.preventDefault();
     const next = !completed;
     setCompleted(next);
-
-    if (next) fireConfetti();
+    if (next) {
+      adjustCompletedCount(1);
+      adjustProjectTaskCount(task.project_id, -1);
+    } else {
+      adjustCompletedCount(-1);
+      adjustProjectTaskCount(task.project_id, 1);
+    }
 
     try {
+      if (next) fireConfetti();
       await updateTask(task.id, { is_completed: next });
     } catch {
       setCompleted(!next);
+      if (next) {
+        adjustCompletedCount(-1);
+        adjustProjectTaskCount(task.project_id, 1);
+      } else {
+        adjustCompletedCount(1);
+        adjustProjectTaskCount(task.project_id, -1);
+      }
       toast.error('Failed to update task');
     }
   }
 
-  async function handleDelete() {
+  async function handleDeleteSubtask() {
     setDeletingSubTask(true);
+    if (!task.is_completed) {
+      adjustProjectTaskCount(task.project_id, -1);
+    } else {
+      adjustCompletedCount(-1);
+    }
     try {
       await deleteTask(task.id);
       router.refresh();
@@ -88,6 +88,11 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
         },
       });
     } catch {
+      if (!task.is_completed) {
+        adjustProjectTaskCount(task.project_id, 1);
+      } else {
+        adjustCompletedCount(1);
+      }
       toast.error('Failed to delete sub-task');
       setDeletingSubTask(false);
     }
@@ -106,8 +111,9 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
           : null,
         project_id: editorValues.project?.id ?? null,
         description: editorValues.description.trim() || null,
-        description_text:
-          editorValues.descriptionPlain.trim().slice(0, 500) || null,
+        description_text: truncateDescriptionText(
+          editorValues.descriptionPlain
+        ),
       });
       setUpdatingSubTask(false);
       router.refresh();
@@ -136,7 +142,7 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleDelete}
+              onClick={handleDeleteSubtask}
               disabled={deletingSubTask}
               className="text-muted-foreground hover:text-destructive gap-1.5"
             >
@@ -181,8 +187,10 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
             role="button"
             tabIndex={0}
             aria-label="Complete task"
-            onClick={handleToggle}
-            onKeyDown={(e) => e.key === 'Enter' && handleToggle(e as never)}
+            onClick={handleCompleteTask}
+            onKeyDown={(e) =>
+              e.key === 'Enter' && handleCompleteTask(e as never)
+            }
             className="text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors"
           >
             {completed ? (

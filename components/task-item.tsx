@@ -15,14 +15,15 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Project } from '@/lib/project';
-import { Task } from '@/lib/task';
+import { isTaskOverdue, Task } from '@/lib/task';
 import { cn } from '@/lib/utils';
-import { isPast, startOfDay, addDays } from 'date-fns';
 import { CheckCircle2, Circle, Copy, RotateCcw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useProjects } from '@/contexts/projects-context';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { fireConfetti } from '@/lib/animation';
 
 type TaskItemProps = {
   task: Task;
@@ -32,38 +33,21 @@ type TaskItemProps = {
 
 export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
   const router = useRouter();
+  const { adjustProjectTaskCount, adjustCompletedCount } = useProjects();
   const [completed, setCompleted] = useState(task.is_completed);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isOverdue =
-    task.due_date !== null &&
-    isPast(startOfDay(addDays(new Date(task.due_date), 1))) &&
-    !completed;
-
-  function fireConfetti() {
-    import('canvas-confetti').then((mod) => {
-      const confetti = mod.default as (opts: Record<string, unknown>) => void;
-      const shared = {
-        particleCount: 80,
-        spread: 55,
-        startVelocity: 55,
-        decay: 0.92,
-        ticks: 200,
-        origin: { y: 0.6 },
-        disableForReducedMotion: true,
-      };
-      confetti({ ...shared, angle: 60, origin: { x: 0, y: 0.6 } });
-      confetti({ ...shared, angle: 120, origin: { x: 1, y: 0.6 } });
-    });
-  }
-
-  function handleDuplicate() {
-    router.push(`/task?duplicate=${task.id}`);
-  }
+  const isOverdue = isTaskOverdue(task, completed);
 
   async function handleDelete() {
     setIsDeleting(true);
+    // Optimistic: adjust for parent only (subtask states unknown in list view)
+    if (!completed) {
+      adjustProjectTaskCount(task.project_id, -1);
+    } else {
+      adjustCompletedCount(-1);
+    }
     try {
       const deletedIds =
         (task.sub_task_total ?? 0) > 0
@@ -77,6 +61,11 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
         },
       });
     } catch {
+      if (!completed) {
+        adjustProjectTaskCount(task.project_id, +1);
+      } else {
+        adjustCompletedCount(+1);
+      }
       toast.error('Failed to delete task');
     } finally {
       setIsDeleting(false);
@@ -93,25 +82,42 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
   }
 
   async function handleMarkIncomplete() {
+    adjustCompletedCount(-1);
+    adjustProjectTaskCount(task.project_id, +1);
     try {
       await updateTask(task.id, { is_completed: false });
       toast.success('Marked as incomplete');
     } catch {
+      adjustCompletedCount(+1);
+      adjustProjectTaskCount(task.project_id, -1);
       toast.error('Failed to update task');
     }
   }
 
-  async function handleToggle(e: React.MouseEvent) {
+  async function handleCompleteTask(e: React.MouseEvent) {
     e.preventDefault();
     const next = !completed;
     setCompleted(next);
-
-    if (next) fireConfetti();
+    if (next) {
+      adjustCompletedCount(+1);
+      adjustProjectTaskCount(task.project_id, -1);
+    } else {
+      adjustCompletedCount(-1);
+      adjustProjectTaskCount(task.project_id, +1);
+    }
 
     try {
+      if (next) fireConfetti();
       await updateTask(task.id, { is_completed: next });
     } catch {
       setCompleted(!next);
+      if (next) {
+        adjustCompletedCount(-1);
+        adjustProjectTaskCount(task.project_id, +1);
+      } else {
+        adjustCompletedCount(+1);
+        adjustProjectTaskCount(task.project_id, -1);
+      }
       toast.error('Failed to update task');
     }
   }
@@ -137,8 +143,8 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
                 role="button"
                 tabIndex={0}
                 aria-label="Complete task"
-                onClick={handleToggle}
-                onKeyDown={(e) => e.key === 'Enter' && handleToggle(e as never)}
+                onClick={handleCompleteTask}
+                onKeyDown={(e) => e.key === 'Enter' && handleCompleteTask(e)}
                 className="text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors"
               >
                 {completed ? (
@@ -186,7 +192,9 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
-          <ContextMenuItem onClick={handleDuplicate}>
+          <ContextMenuItem
+            onClick={() => router.push(`/task?duplicate=${task.id}`)}
+          >
             <Copy />
             Duplicate
           </ContextMenuItem>
