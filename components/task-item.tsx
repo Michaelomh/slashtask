@@ -17,6 +17,7 @@ import {
 import { Project } from '@/lib/project';
 import { isTaskOverdue, Task } from '@/lib/task';
 import { cn } from '@/lib/utils';
+import { useServerAction } from '@/hooks/use-server-action';
 import { CheckCircle2, Circle, Copy, RotateCcw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useProjects } from '@/contexts/projects-context';
@@ -36,41 +37,41 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
   const { adjustProjectTaskCount, adjustCompletedCount } = useProjects();
   const [completed, setCompleted] = useState(task.is_completed);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { isPending: isCompletePending, run: runComplete } = useServerAction();
+  const { isPending: isDeletePending, run: runDelete } = useServerAction();
 
   const isOverdue = isTaskOverdue(task, completed);
 
-  async function handleDelete() {
-    setIsDeleting(true);
-    // Optimistic: adjust for parent only (subtask states unknown in list view)
+  function handleDelete() {
     if (!completed) {
       adjustProjectTaskCount(task.project_id, -1);
     } else {
       adjustCompletedCount(-1);
     }
-    try {
-      const deletedIds =
-        (task.sub_task_total ?? 0) > 0
-          ? await deleteTaskWithSubtasks(task.id)
-          : await deleteTask(task.id).then(() => [task.id]);
-      toast('Task deleted', {
-        duration: 5000,
-        action: {
-          label: 'Undo',
-          onClick: () => restoreTasks(deletedIds),
-        },
-      });
-    } catch {
-      if (!completed) {
-        adjustProjectTaskCount(task.project_id, +1);
-      } else {
-        adjustCompletedCount(+1);
+    runDelete(async () => {
+      try {
+        const deletedIds =
+          (task.sub_task_total ?? 0) > 0
+            ? await deleteTaskWithSubtasks(task.id)
+            : await deleteTask(task.id).then(() => [task.id]);
+        toast('Task deleted', {
+          duration: 5000,
+          action: {
+            label: 'Undo',
+            onClick: () => restoreTasks(deletedIds),
+          },
+        });
+      } catch {
+        if (!completed) {
+          adjustProjectTaskCount(task.project_id, +1);
+        } else {
+          adjustCompletedCount(+1);
+        }
+        toast.error('Failed to delete task');
+      } finally {
+        setShowDeleteDialog(false);
       }
-      toast.error('Failed to delete task');
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
+    });
   }
 
   function handleDeleteClick() {
@@ -81,20 +82,22 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
     }
   }
 
-  async function handleMarkIncomplete() {
+  function handleMarkIncomplete() {
     adjustCompletedCount(-1);
     adjustProjectTaskCount(task.project_id, +1);
-    try {
-      await updateTask(task.id, { is_completed: false });
-      toast.success('Marked as incomplete');
-    } catch {
-      adjustCompletedCount(+1);
-      adjustProjectTaskCount(task.project_id, -1);
-      toast.error('Failed to update task');
-    }
+    runComplete(async () => {
+      try {
+        await updateTask(task.id, { is_completed: false });
+        toast.success('Marked as incomplete');
+      } catch {
+        adjustCompletedCount(+1);
+        adjustProjectTaskCount(task.project_id, -1);
+        toast.error('Failed to update task');
+      }
+    });
   }
 
-  async function handleCompleteTask(e: React.MouseEvent) {
+  function handleCompleteTask(e: React.MouseEvent) {
     e.preventDefault();
     const next = !completed;
     setCompleted(next);
@@ -105,21 +108,22 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
       adjustCompletedCount(-1);
       adjustProjectTaskCount(task.project_id, +1);
     }
-
-    try {
-      if (next) fireConfetti();
-      await updateTask(task.id, { is_completed: next });
-    } catch {
-      setCompleted(!next);
-      if (next) {
-        adjustCompletedCount(-1);
-        adjustProjectTaskCount(task.project_id, +1);
-      } else {
-        adjustCompletedCount(+1);
-        adjustProjectTaskCount(task.project_id, -1);
+    runComplete(async () => {
+      try {
+        if (next) fireConfetti();
+        await updateTask(task.id, { is_completed: next });
+      } catch {
+        setCompleted(!next);
+        if (next) {
+          adjustCompletedCount(-1);
+          adjustProjectTaskCount(task.project_id, +1);
+        } else {
+          adjustCompletedCount(+1);
+          adjustProjectTaskCount(task.project_id, -1);
+        }
+        toast.error('Failed to update task');
       }
-      toast.error('Failed to update task');
-    }
+    });
   }
 
   return (
@@ -144,8 +148,11 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
                 tabIndex={0}
                 aria-label="Complete task"
                 onClick={handleCompleteTask}
-                onKeyDown={(e) => e.key === 'Enter' && handleCompleteTask(e)}
-                className="text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors"
+                onKeyDown={(e) => e.key === 'Enter' && handleCompleteTask(e as never)}
+                className={cn(
+                  'text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors',
+                  isCompletePending && 'opacity-50'
+                )}
               >
                 {completed ? (
                   <CheckCircle2 className="text-primary size-4" />
@@ -217,7 +224,7 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
         setShowDeleteConfirmationDialog={setShowDeleteDialog}
         title="Delete task?"
         description="This task has subtasks. Deleting it will also delete all subtasks."
-        isDeleting={isDeleting}
+        isDeleting={isDeletePending}
         handleDelete={handleDelete}
       />
     </>

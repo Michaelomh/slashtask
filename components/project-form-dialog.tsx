@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
+import { useServerAction } from '@/hooks/use-server-action';
 
 const EMOJI_OPTIONS = [
   '💼',
@@ -92,8 +93,8 @@ export function ProjectFormDialog({
   const [emoji, setEmoji] = useState(data?.emoji ?? '📁');
   const [color, setColor] = useState(data?.color ?? '#3498db');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const { isPending: isSaving, run: runSave } = useServerAction();
+  const { isPending: isDeleting, run: runDelete } = useServerAction();
 
   function handleClose() {
     onOpenChange(false);
@@ -105,32 +106,31 @@ export function ProjectFormDialog({
     setColor('#3498db');
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!name.trim()) return;
-    setSaving(true);
-    try {
-      await onSave({
-        id: mode === 'edit' && data ? data.id : undefined,
-        name: name.trim(),
-        emoji,
-        color,
-        order: data?.order ?? 0,
-      });
-      if (mode === 'create') resetForm();
-      handleClose();
-    } catch {
-      // keep modal open on error
-    } finally {
-      setSaving(false);
-    }
+    runSave(async () => {
+      try {
+        await onSave({
+          id: mode === 'edit' && data ? data.id : undefined,
+          name: name.trim(),
+          emoji,
+          color,
+          order: data?.order ?? 0,
+        });
+        if (mode === 'create') resetForm();
+        handleClose();
+      } catch {
+        // keep modal open on error
+      }
+    });
   }
 
-  async function handleDelete() {
-    setDeleting(true);
-    await onDelete?.();
-    setDeleting(false);
-    setShowDeleteConfirm(false);
-    handleClose();
+  function handleDelete() {
+    runDelete(async () => {
+      await onDelete?.();
+      setShowDeleteConfirm(false);
+      handleClose();
+    });
   }
 
   function handleOpenChange(next: boolean) {
@@ -239,16 +239,16 @@ export function ProjectFormDialog({
                 variant="outline"
                 size="sm"
                 onClick={handleClose}
-                disabled={saving}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
               <Button
                 size="sm"
-                disabled={!name.trim() || saving}
+                disabled={!name.trim() || isSaving}
                 onClick={handleSave}
               >
-                {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
+                {isSaving ? <Spinner size="sm" className="mr-1.5" /> : null}
                 {mode === 'create' ? 'Add project' : 'Save'}
               </Button>
             </div>
@@ -262,7 +262,7 @@ export function ProjectFormDialog({
         title="Are you sure?"
         description="All tasks under this project will be permanently deleted. This
             cannot be undone."
-        isDeleting={deleting}
+        isDeleting={isDeleting}
         handleDelete={handleDelete}
       />
     </>

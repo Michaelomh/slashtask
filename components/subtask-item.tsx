@@ -16,6 +16,7 @@ import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
 import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
 import { useProjects } from '@/contexts/projects-context';
 import { fireConfetti } from '@/lib/animation';
+import { useServerAction } from '@/hooks/use-server-action';
 
 type SubTaskItemProps = {
   task: Task;
@@ -28,8 +29,6 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
   const router = useRouter();
   const [completed, setCompleted] = useState(task.is_completed);
   const [updatingSubTask, setUpdatingSubTask] = useState(false);
-  const [savingSubTask, setSavingSubTask] = useState(false);
-  const [deletingSubTask, setDeletingSubTask] = useState(false);
   const [editorValues, setEditorValues] = useState<TaskEditorValues>({
     title: task.title ?? '',
     description: task.description ?? '',
@@ -39,10 +38,13 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
     dueDate: task.due_date ? new Date(task.due_date + 'T00:00:00') : null,
     project: projects.find((p) => p.id === task.project_id) ?? null,
   });
+  const { isPending: isCompletePending, run: runComplete } = useServerAction();
+  const { isPending: isSaving, run: runSave } = useServerAction();
+  const { isPending: isDeleting, run: runDelete } = useServerAction();
 
   const isOverdue = isTaskOverdue(task, completed);
 
-  async function handleCompleteTask(e: React.MouseEvent) {
+  function handleCompleteTask(e: React.MouseEvent) {
     e.preventDefault();
     const next = !completed;
     setCompleted(next);
@@ -53,76 +55,76 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
       adjustCompletedCount(-1);
       adjustProjectTaskCount(task.project_id, 1);
     }
-
-    try {
-      if (next) fireConfetti();
-      await updateTask(task.id, { is_completed: next });
-    } catch {
-      setCompleted(!next);
-      if (next) {
-        adjustCompletedCount(-1);
-        adjustProjectTaskCount(task.project_id, 1);
-      } else {
-        adjustCompletedCount(1);
-        adjustProjectTaskCount(task.project_id, -1);
+    runComplete(async () => {
+      try {
+        if (next) fireConfetti();
+        await updateTask(task.id, { is_completed: next });
+      } catch {
+        setCompleted(!next);
+        if (next) {
+          adjustCompletedCount(-1);
+          adjustProjectTaskCount(task.project_id, 1);
+        } else {
+          adjustCompletedCount(1);
+          adjustProjectTaskCount(task.project_id, -1);
+        }
+        toast.error('Failed to update task');
       }
-      toast.error('Failed to update task');
-    }
+    });
   }
 
-  async function handleDeleteSubtask() {
-    setDeletingSubTask(true);
+  function handleDeleteSubtask() {
     if (!task.is_completed) {
       adjustProjectTaskCount(task.project_id, -1);
     } else {
       adjustCompletedCount(-1);
     }
-    try {
-      await deleteTask(task.id);
-      router.refresh();
-      toast('Sub-task deleted', {
-        duration: 5000,
-        action: {
-          label: 'Undo',
-          onClick: () => updateTask(task.id, { is_deleted: false }),
-        },
-      });
-    } catch {
-      if (!task.is_completed) {
-        adjustProjectTaskCount(task.project_id, 1);
-      } else {
-        adjustCompletedCount(1);
+    runDelete(async () => {
+      try {
+        await deleteTask(task.id);
+        router.refresh();
+        toast('Sub-task deleted', {
+          duration: 5000,
+          action: {
+            label: 'Undo',
+            onClick: () => updateTask(task.id, { is_deleted: false }),
+          },
+        });
+      } catch {
+        if (!task.is_completed) {
+          adjustProjectTaskCount(task.project_id, 1);
+        } else {
+          adjustCompletedCount(1);
+        }
+        toast.error('Failed to delete sub-task');
       }
-      toast.error('Failed to delete sub-task');
-      setDeletingSubTask(false);
-    }
+    });
   }
 
-  async function handleUpdateSubTask() {
-    if (!editorValues.title.trim() || savingSubTask) return;
-    setSavingSubTask(true);
-    try {
-      await updateTask(task.id, {
-        title: editorValues.title.trim(),
-        priority: editorValues.priority,
-        effort: editorValues.effort,
-        due_date: editorValues.dueDate
-          ? format(editorValues.dueDate, 'yyyy-MM-dd')
-          : null,
-        project_id: editorValues.project?.id ?? null,
-        description: editorValues.description.trim() || null,
-        description_text: truncateDescriptionText(
-          editorValues.descriptionPlain
-        ),
-      });
-      setUpdatingSubTask(false);
-      router.refresh();
-      toast.success('Sub-task updated');
-    } catch {
-      toast.error('Failed to update sub-task');
-    } finally {
-      setSavingSubTask(false);
-    }
+  function handleUpdateSubTask() {
+    if (!editorValues.title.trim()) return;
+    runSave(async () => {
+      try {
+        await updateTask(task.id, {
+          title: editorValues.title.trim(),
+          priority: editorValues.priority,
+          effort: editorValues.effort,
+          due_date: editorValues.dueDate
+            ? format(editorValues.dueDate, 'yyyy-MM-dd')
+            : null,
+          project_id: editorValues.project?.id ?? null,
+          description: editorValues.description.trim() || null,
+          description_text: truncateDescriptionText(
+            editorValues.descriptionPlain
+          ),
+        });
+        setUpdatingSubTask(false);
+        router.refresh();
+        toast.success('Sub-task updated');
+      } catch {
+        toast.error('Failed to update sub-task');
+      }
+    });
   }
 
   return (
@@ -143,10 +145,10 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
               variant="ghost"
               size="sm"
               onClick={handleDeleteSubtask}
-              disabled={deletingSubTask}
+              disabled={isDeleting}
               className="text-muted-foreground hover:text-destructive gap-1.5"
             >
-              {deletingSubTask ? (
+              {isDeleting ? (
                 <Spinner size="sm" />
               ) : (
                 <Trash2 className="size-3.5" />
@@ -160,16 +162,16 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
                 onClick={() => {
                   setUpdatingSubTask(false);
                 }}
-                disabled={savingSubTask}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
               <Button
                 size="sm"
-                disabled={!editorValues.title.trim() || savingSubTask}
+                disabled={!editorValues.title.trim() || isSaving}
                 onClick={handleUpdateSubTask}
               >
-                {savingSubTask ? (
+                {isSaving ? (
                   <Spinner size="sm" className="mr-1.5" />
                 ) : null}
                 Update sub-task
@@ -191,7 +193,10 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
             onKeyDown={(e) =>
               e.key === 'Enter' && handleCompleteTask(e as never)
             }
-            className="text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors"
+            className={cn(
+              'text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors',
+              isCompletePending && 'opacity-50'
+            )}
           >
             {completed ? (
               <CheckCircle2 className="text-primary size-4" />

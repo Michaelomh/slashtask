@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { SubTaskItem } from './subtask-item';
 import { useProjects } from '@/contexts/projects-context';
+import { useServerAction } from '@/hooks/use-server-action';
 
 type SubTaskSectionProps = {
   subTasks: Task[];
@@ -27,12 +28,12 @@ export function SubTaskSection({
 }: SubTaskSectionProps) {
   const { projects, adjustProjectTaskCount } = useProjects();
   const [subTasks, setSubTasks] = useState<Task[]>(initialSubTasks);
+  const { isPending, run } = useServerAction();
 
   useEffect(() => {
     setSubTasks(initialSubTasks);
   }, [initialSubTasks]);
   const [addingSubTask, setAddingSubTask] = useState(false);
-  const [savingSubTask, setSavingSubTask] = useState(false);
   const [editorValues, setEditorValues] = useState<TaskEditorValues>({
     ...INITIAL_EMPTY_TASK,
     dueDate: parentTask.due_date
@@ -41,35 +42,34 @@ export function SubTaskSection({
     project: projects.find((p) => p.id === parentTask.project_id) ?? null,
   });
 
-  async function handleAddSubTask() {
-    if (!editorValues.title.trim() || savingSubTask) return;
-    setSavingSubTask(true);
+  function handleAddSubTask() {
+    if (!editorValues.title.trim()) return;
     const projectId = editorValues.project?.id ?? null;
     adjustProjectTaskCount(projectId, 1);
-    try {
-      const created = await createTask({
-        title: editorValues.title.trim(),
-        parent_task_id: parentTask.id,
-        priority: editorValues.priority,
-        effort: editorValues.effort,
-        due_date: editorValues.dueDate
-          ? format(editorValues.dueDate, 'yyyy-MM-dd')
-          : null,
-        project_id: projectId,
-        description: editorValues.description.trim() || null,
-        description_text: truncateDescriptionText(
-          editorValues.descriptionPlain
-        ),
-      });
-      setSubTasks((prev) => [...prev, created]);
-      setAddingSubTask(false);
-      toast.success('Sub-task created');
-    } catch {
-      adjustProjectTaskCount(projectId, -1);
-      toast.error('Failed to add sub-task');
-    } finally {
-      setSavingSubTask(false);
-    }
+    run(async () => {
+      try {
+        const created = await createTask({
+          title: editorValues.title.trim(),
+          parent_task_id: parentTask.id,
+          priority: editorValues.priority,
+          effort: editorValues.effort,
+          due_date: editorValues.dueDate
+            ? format(editorValues.dueDate, 'yyyy-MM-dd')
+            : null,
+          project_id: projectId,
+          description: editorValues.description.trim() || null,
+          description_text: truncateDescriptionText(
+            editorValues.descriptionPlain
+          ),
+        });
+        setSubTasks((prev) => [...prev, created]);
+        setAddingSubTask(false);
+        toast.success('Sub-task created');
+      } catch {
+        adjustProjectTaskCount(projectId, -1);
+        toast.error('Failed to add sub-task');
+      }
+    });
   }
 
   return (
@@ -99,16 +99,16 @@ export function SubTaskSection({
               variant="outline"
               size="sm"
               onClick={() => setAddingSubTask(false)}
-              disabled={savingSubTask}
+              disabled={isPending}
             >
               Cancel
             </Button>
             <Button
               size="sm"
-              disabled={!editorValues.title.trim() || savingSubTask}
+              disabled={!editorValues.title.trim() || isPending}
               onClick={handleAddSubTask}
             >
-              {savingSubTask ? <Spinner size="sm" className="mr-1.5" /> : null}
+              {isPending ? <Spinner size="sm" className="mr-1.5" /> : null}
               Add task
             </Button>
           </div>

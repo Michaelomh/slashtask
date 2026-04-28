@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { formatDueDate } from '@/lib/date';
 import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
 import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
+import { useServerAction } from '@/hooks/use-server-action';
 
 type NewTaskModalProps = {
   initialTask?: Task;
@@ -31,6 +32,7 @@ export function NewTaskModal({
 }: NewTaskModalProps) {
   const router = useRouter();
   const { adjustProjectTaskCount } = useProjects();
+  const { isPending, run } = useServerAction();
 
   const initialValues: TaskEditorValues = {
     title: initialTask ? initialTask.title : '',
@@ -43,7 +45,6 @@ export function NewTaskModal({
   };
 
   const [values, setValues] = useState<TaskEditorValues>(initialValues);
-  const [saving, setSaving] = useState(false);
 
   function handleClose() {
     if (onClose) {
@@ -53,28 +54,28 @@ export function NewTaskModal({
     }
   }
 
-  async function handleSubmit() {
-    if (!values.title.trim() || saving) return;
-    setSaving(true);
+  function handleSubmit() {
+    if (!values.title.trim()) return;
     const projectId = values.project?.id ?? null;
     adjustProjectTaskCount(projectId, 1);
-    try {
-      await createTask({
-        title: values.title.trim(),
-        description: values.description.trim() || null,
-        description_text: truncateDescriptionText(values.descriptionPlain),
-        project_id: projectId,
-        priority: values.priority,
-        effort: values.effort,
-        due_date: values.dueDate ? format(values.dueDate, 'yyyy-MM-dd') : null,
-      });
-      handleClose();
-      router.refresh();
-    } catch {
-      adjustProjectTaskCount(projectId, -1);
-      toast.error('Failed to create task');
-      setSaving(false);
-    }
+    run(async () => {
+      try {
+        await createTask({
+          title: values.title.trim(),
+          description: values.description.trim() || null,
+          description_text: truncateDescriptionText(values.descriptionPlain),
+          project_id: projectId,
+          priority: values.priority,
+          effort: values.effort,
+          due_date: values.dueDate ? format(values.dueDate, 'yyyy-MM-dd') : null,
+        });
+        handleClose();
+        router.refresh();
+      } catch {
+        adjustProjectTaskCount(projectId, -1);
+        toast.error('Failed to create task');
+      }
+    });
   }
 
   return (
@@ -96,16 +97,16 @@ export function NewTaskModal({
               variant="outline"
               size="sm"
               onClick={onClose}
-              disabled={saving}
+              disabled={isPending}
             >
               Cancel
             </Button>
             <Button
               size="sm"
-              disabled={!values.title.trim() || saving}
+              disabled={!values.title.trim() || isPending}
               onClick={handleSubmit}
             >
-              {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
+              {isPending ? <Spinner size="sm" className="mr-1.5" /> : null}
               Add task
             </Button>
           </div>
