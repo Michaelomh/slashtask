@@ -1,7 +1,7 @@
 import { AppProviders } from '@/components/layout/app-providers';
 import { MobileHeader } from '@/components/layout/mobile-header';
 import { Sidebar } from '@/components/layout/sidebar';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, getUser } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { Suspense } from 'react';
 
@@ -14,10 +14,7 @@ export default async function AppLayout({
 }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   const [{ data: projects }, { count: completedCount }] = await Promise.all([
     supabase

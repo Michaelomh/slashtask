@@ -131,6 +131,7 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
       <ContextMenu>
         <ContextMenuTrigger className="block">
           <div
+            onMouseEnter={() => router.prefetch(`/task/${task.id}`)}
             className={cn(
               'group border-border/50 flex items-start border-b transition-all'
             )}
@@ -200,6 +201,7 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
         </ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem
+            onMouseEnter={() => router.prefetch(`/task?duplicate=${task.id}`)}
             onClick={() => router.push(`/task?duplicate=${task.id}`)}
           >
             <Copy />

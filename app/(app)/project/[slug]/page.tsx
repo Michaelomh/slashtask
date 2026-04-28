@@ -1,6 +1,6 @@
 import { ProjectView } from '@/components/page/project-view';
 import { Task } from '@/lib/task';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, getUser } from '@/utils/supabase/server';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -37,9 +37,7 @@ export default async function ProjectPage({
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   const projectResult = await supabase
     .from('projects')
