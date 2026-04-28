@@ -310,25 +310,29 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 - [x] Sub-tasks: add, complete, delete within detail panel (one level deep only — no nested sub-tasks)
 - [x] Delete task: cascade-delete sub-tasks; show confirmation dialog if sub-tasks exist`
 - [x] Edit title, description (markdown with toggle preview), project, due date, priority, effort
-- [x] Drag-to-reorder tasks within any view; persist updated `order` to DB
-- [x] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
-- [ ] Recurring tasks: on completion, mark original complete and insert new task row with next due date from `rrule`
+- [x] Duplicate task
 
-### Phase X - Clean up.
+### Phase 5 - Clean up.
 
-- [ ] Make sure that when things move, there is a loading screen or something. Or load first and then show data later, or show loading screen.
+- [x] Make sure that when things move, there is a loading screen or something. Or load first and then show data later, or show loading screen.
 - [ ]
 
 ### Milestone 2 - REFINEMENT
 
-### Phase 5 — Search
+### Phase 5 — Task Refinement
+
+- [ ] Drag-to-reorder tasks within any view; persist updated `order` to DB
+- [ ] Shortcut parser: `#project` shows live dropdown of matching projects (no auto-create), `!` priority, `$` effort, natural language dates via `chrono-node`
+- [ ] Recurring tasks: on completion, mark original complete and insert new task row with next due date from `rrule`
+
+### Phase 6 — Search, Filtering, and more
 
 - [ ] `Cmd+K` opens global search modal
 - [ ] Search queries tasks by title and description
 - [ ] Results grouped by project
 - [ ] Clicking a result opens the task detail panel
 
-### Phase 6 — Gamification
+### Phase 7 — Gamification
 
 - [ ] On task completion: increment `daily_stats.tasks_completed` for today
 - [ ] Streak calculation logic: update `streaks` table in real-time on task completion/uncompletion (no cron job)
@@ -337,13 +341,13 @@ Linear-style keyboard shortcuts. Shortcuts are disabled when focus is inside a t
 - [ ] Achievements: check conditions on relevant events (task complete, project create, etc.); `early_bird`/`night_owl` evaluated using browser's local timezone
 - [ ] Achievements panel: grid showing locked/unlocked badges
 
-### Phase 7 — Keyboard Shortcuts
+### Phase 8 — Keyboard Shortcuts
 
 - [ ] Global keyboard shortcut handler (disabled when focus is in an input/textarea)
-- [ ] `Q` → focuses/opens quick-add task input
+- [x] `Q` → focuses/opens quick-add task input
 - [ ] `Cmd+K` → opens global search modal (consolidate with Phase 5)
 
-### Phase 8 — Polish & Deploy
+### Phase 9 — Polish & Deploy
 
 - [ ] Loading states and optimistic UI updates for task actions
 - [ ] Error handling on save failure: (1) roll back optimistic change, (2) show brief toast notification, (3) show persistent inline error near the task with a "click here" link navigating directly to it

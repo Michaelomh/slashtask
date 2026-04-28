@@ -70,6 +70,7 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
           ? await deleteTaskWithSubtasks(task.id)
           : await deleteTask(task.id).then(() => [task.id]);
       toast('Task deleted', {
+        duration: 5000,
         action: {
           label: 'Undo',
           onClick: () => restoreTasks(deletedIds),
@@ -126,6 +127,7 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
           >
             <Link
               href={`/task/${task.id}`}
+              prefetch={true}
               className={cn(
                 'hover:bg-muted/30 flex flex-1 items-start gap-3 py-3 pr-4 transition-all'
               )}

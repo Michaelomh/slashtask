@@ -81,6 +81,7 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
       await deleteTask(task.id);
       router.refresh();
       toast('Sub-task deleted', {
+        duration: 5000,
         action: {
           label: 'Undo',
           onClick: () => updateTask(task.id, { is_deleted: false }),

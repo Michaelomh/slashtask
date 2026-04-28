@@ -88,6 +88,7 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
           : await deleteTask(id).then(() => [id]);
       router.back();
       toast('Task deleted', {
+        duration: 5000,
         action: {
           label: 'Undo',
           onClick: () => restoreTasks(deletedIds),

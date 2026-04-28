@@ -168,6 +168,7 @@ export function SidebarContent({ completedCount }: SidebarContentProps) {
             <Link
               key={href}
               href={href}
+              prefetch={true}
               onClick={(e) => navigate(href, e)}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -232,6 +233,7 @@ export function SidebarContent({ completedCount }: SidebarContentProps) {
               >
                 <Link
                   href={projectHref}
+                  prefetch={true}
                   onClick={(e) => navigate(projectHref, e)}
                   className={cn(
                     'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',

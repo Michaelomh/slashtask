@@ -11,6 +11,7 @@ const fontSans = Inter({
 const fontMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
+  preload: false,
 });
 
 export const metadata: Metadata = {

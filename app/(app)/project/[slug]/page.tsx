@@ -21,7 +21,7 @@ export async function generateMetadata({
     .eq('is_deleted', false)
     .single();
 
-  return { title: data ? `${data.emoji} ${data.name}` : 'Project' };
+  return { title: data ? `${data.name}` : 'Project' };
 }
 
 type RawTask = Task & {
