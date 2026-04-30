@@ -6,6 +6,7 @@ import {
   TaskEditor,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Task } from '@/lib/task';
 import { format } from 'date-fns';
@@ -13,11 +14,12 @@ import { Save, Trash2 } from 'lucide-react';
 import {
   deleteTask,
   deleteTaskWithSubtasks,
+  getTaskWithSubtasks,
   restoreTasks,
   updateTask,
 } from '@/app/actions/tasks';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 import { SubTaskSection } from './subtask-section';
@@ -26,17 +28,36 @@ import { useServerAction } from '@/hooks/use-server-action';
 
 type EditTaskModalProps = {
   id: string;
-  task: Task;
-  subTasks: Task[];
+  initialTask: Task;
+  initialSubTasks?: Task[];
 };
 
-export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
+export function EditTaskModal({
+  id,
+  initialTask,
+  initialSubTasks,
+}: EditTaskModalProps) {
   const router = useRouter();
   const { projects, adjustProjectTaskCount, adjustCompletedCount } =
     useProjects();
   const { isPending: isSaving, run: runSave } = useServerAction();
   const { isPending: isDeleting, run: runDelete } = useServerAction();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const task = initialTask;
+  const [subTasks, setSubTasks] = useState<Task[] | undefined>(initialSubTasks);
+  const subTasksLoaded = subTasks !== undefined;
+
+  useEffect(() => {
+    if (initialSubTasks !== undefined) return;
+    let cancelled = false;
+    getTaskWithSubtasks(id).then((res) => {
+      if (cancelled) return;
+      setSubTasks(res.subTasks);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, initialSubTasks]);
 
   const initialValues: TaskEditorValues = {
     title: task.title,
@@ -83,6 +104,7 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
   }
 
   function handleDeleteClick() {
+    if (!subTasks) return;
     if (subTasks.length > 0) {
       setShowDeleteConfirm(true);
     } else {
@@ -91,6 +113,7 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
   }
 
   function handleDelete() {
+    if (!subTasks) return;
     const allTasks = [task, ...subTasks];
     const incompleteTasks = allTasks.filter((t) => !t.is_completed);
     const completedTaskCount = allTasks.length - incompleteTasks.length;
@@ -108,12 +131,12 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
     if (completedTaskCount > 0) {
       adjustCompletedCount(-completedTaskCount);
     }
+    const hadSubTasks = subTasks.length > 0;
     runDelete(async () => {
       try {
-        const deletedIds =
-          subTasks.length > 0
-            ? await deleteTaskWithSubtasks(id)
-            : await deleteTask(id).then(() => [id]);
+        const deletedIds = hadSubTasks
+          ? await deleteTaskWithSubtasks(id)
+          : await deleteTask(id).then(() => [id]);
         router.back();
         toast('Task deleted', {
           duration: 5000,
@@ -148,7 +171,13 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
                 valuesRef.current = v;
               }}
             />
-            <SubTaskSection subTasks={subTasks} parentTask={task} />
+            {subTasks ? (
+              <SubTaskSection subTasks={subTasks} parentTask={task} />
+            ) : (
+              <div className="mt-4 space-y-2">
+                <Skeleton className="h-8 w-28" />
+              </div>
+            )}
           </div>
 
           <div className="border-border flex items-center justify-between border-t px-4 py-3">
@@ -156,7 +185,7 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
               variant="ghost"
               size="sm"
               onClick={handleDeleteClick}
-              disabled={isDeleting}
+              disabled={isDeleting || !subTasksLoaded}
               className="text-muted-foreground hover:text-destructive gap-1.5"
             >
               {isDeleting ? (
@@ -184,7 +213,7 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
         showDeleteConfirmationDialog={showDeleteConfirm}
         setShowDeleteConfirmationDialog={setShowDeleteConfirm}
         title="Are you sure?"
-        description={`This will also delete ${subTasks.length} sub-task${subTasks.length !== 1 ? 's' : ''}.`}
+        description={`This will also delete ${subTasks?.length ?? 0} sub-task${(subTasks?.length ?? 0) !== 1 ? 's' : ''}.`}
         isDeleting={isDeleting}
         handleDelete={handleDelete}
       />

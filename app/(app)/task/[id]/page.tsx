@@ -50,6 +50,10 @@ export default async function TaskDetailPage({
   if (!task) notFound();
 
   return (
-    <EditTaskModal id={id} task={task} subTasks={(subTasks ?? []) as Task[]} />
+    <EditTaskModal
+      id={id}
+      initialTask={task as Task}
+      initialSubTasks={(subTasks ?? []) as Task[]}
+    />
   );
 }

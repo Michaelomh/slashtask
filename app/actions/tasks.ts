@@ -143,6 +143,47 @@ export async function deleteTaskWithSubtasks(
   return ids;
 }
 
+export async function getTaskWithSubtasks(
+  id: string
+): Promise<{ task: Task | null; subTasks: Task[] }> {
+  const { supabase, user } = await getDbClient();
+
+  const [taskResult, subTasksResult] = await Promise.all([
+    supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .single(),
+    supabase
+      .from('tasks')
+      .select('*')
+      .eq('parent_task_id', id)
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .order('due_date', { ascending: true })
+      .order('order', { ascending: true }),
+  ]);
+
+  return {
+    task: (taskResult.data ?? null) as Task | null,
+    subTasks: (subTasksResult.data ?? []) as Task[],
+  };
+}
+
+export async function getTaskById(id: string): Promise<Task | null> {
+  const { supabase, user } = await getDbClient();
+  const { data } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .eq('is_deleted', false)
+    .single();
+  return (data ?? null) as Task | null;
+}
+
 export async function restoreTasks(ids: string[]): Promise<void> {
   const { supabase, user } = await getDbClient();
 

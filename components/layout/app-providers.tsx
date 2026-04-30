@@ -5,6 +5,7 @@ import {
   ProjectsProvider,
   ProjectsProviderType,
 } from '@/contexts/projects-context';
+import { TaskModalProvider } from '@/contexts/task-modal-context';
 
 type AppProvidersType = ProjectsProviderType;
 
@@ -18,7 +19,9 @@ export function AppProviders({
       initialProjects={initialProjects}
       initialCompletedCount={initialCompletedCount}
     >
-      <NewTaskProvider>{children}</NewTaskProvider>
+      <NewTaskProvider>
+        <TaskModalProvider>{children}</TaskModalProvider>
+      </NewTaskProvider>
     </ProjectsProvider>
   );
 }

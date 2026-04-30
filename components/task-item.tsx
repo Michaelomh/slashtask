@@ -21,6 +21,7 @@ import { useServerAction } from '@/hooks/use-server-action';
 import { CheckCircle2, Circle, Copy, RotateCcw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useProjects } from '@/contexts/projects-context';
+import { useTaskModal } from '@/contexts/task-modal-context';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -35,6 +36,7 @@ type TaskItemProps = {
 export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
   const router = useRouter();
   const { adjustProjectTaskCount, adjustCompletedCount } = useProjects();
+  const { primeTask } = useTaskModal();
   const [completed, setCompleted] = useState(task.is_completed);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { isPending: isCompletePending, run: runComplete } = useServerAction();
@@ -128,7 +130,11 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
 
   return (
     <>
-      <ContextMenu>
+      <ContextMenu
+        onOpenChange={(open) => {
+          if (open) router.prefetch(`/task?duplicate=${task.id}`);
+        }}
+      >
         <ContextMenuTrigger className="block">
           <div
             onMouseEnter={() => router.prefetch(`/task/${task.id}`)}
@@ -139,6 +145,13 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
             <Link
               href={`/task/${task.id}`}
               prefetch={true}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
+                  return;
+                e.preventDefault();
+                primeTask(task);
+                router.push(`/task/${task.id}`);
+              }}
               className={cn(
                 'hover:bg-muted/30 flex flex-1 items-start gap-3 py-3 pr-4 transition-all'
               )}
@@ -201,8 +214,10 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
         </ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem
-            onMouseEnter={() => router.prefetch(`/task?duplicate=${task.id}`)}
-            onClick={() => router.push(`/task?duplicate=${task.id}`)}
+            onClick={() => {
+              primeTask(task);
+              router.push(`/task?duplicate=${task.id}`);
+            }}
           >
             <Copy />
             Duplicate

@@ -1,34 +1,38 @@
-import { NewTaskModal } from '@/components/new-task-modal';
-import { Task } from '@/lib/task';
-import { getDbClient } from '@/utils/supabase/action-client';
+'use client';
 
-async function InterceptedNewTaskPage({
+import { getTaskById } from '@/app/actions/tasks';
+import { NewTaskModal } from '@/components/new-task-modal';
+import { NewTaskModalSkeleton } from '@/components/new-task-modal-skeleton';
+import { useTaskModal } from '@/contexts/task-modal-context';
+import { Task } from '@/lib/task';
+import { use, useEffect, useState } from 'react';
+
+export default function InterceptedNewTaskPage({
   searchParams,
 }: {
   searchParams: Promise<{ date?: string; duplicate?: string }>;
 }) {
-  const { supabase, user } = await getDbClient();
-  const { duplicate } = await searchParams;
+  const { duplicate } = use(searchParams);
+  const { primedTask } = useTaskModal();
+  const [fetched, setFetched] = useState<Task | null>(null);
 
-  const [duplicateResult] = await Promise.all([
-    duplicate
-      ? supabase
-          .from('tasks')
-          .select(
-            'title, description, description_text, priority, effort, project_id, due_date'
-          )
-          .eq('id', duplicate)
-          .eq('user_id', user.id)
-          .single()
-      : Promise.resolve({ data: null }),
-  ]);
+  const primed = duplicate && primedTask?.id === duplicate ? primedTask : null;
+  const initialTask = primed ?? fetched ?? undefined;
+  const needsFetch = !!duplicate && !primed && !fetched;
 
-  return (
-    <NewTaskModal
-      initialTask={(duplicateResult.data as Task) ?? undefined}
-      open
-    />
-  );
+  useEffect(() => {
+    if (!needsFetch || !duplicate) return;
+    let cancelled = false;
+    getTaskById(duplicate).then((task) => {
+      if (cancelled || !task) return;
+      setFetched(task);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [duplicate, needsFetch]);
+
+  if (needsFetch) return <NewTaskModalSkeleton />;
+
+  return <NewTaskModal initialTask={initialTask} open />;
 }
-
-export default InterceptedNewTaskPage;
