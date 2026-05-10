@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { truncateDescriptionText, Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { useProjects } from '@/contexts/projects-context';
+import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -32,6 +33,7 @@ export function NewTaskModal({
 }: NewTaskModalProps) {
   const router = useRouter();
   const { adjustProjectTaskCount } = useProjects();
+  const { publish } = useOptimisticTasks();
   const { isPending, run } = useServerAction();
 
   const initialValues: TaskEditorValues = {
@@ -57,20 +59,46 @@ export function NewTaskModal({
   function handleSubmit() {
     if (!values.title.trim()) return;
     const projectId = values.project?.id ?? null;
+    const trimmedTitle = values.title.trim();
+    const trimmedDescription = values.description.trim() || null;
+    const description_text = truncateDescriptionText(values.descriptionPlain);
+    const due_date = values.dueDate
+      ? format(values.dueDate, 'yyyy-MM-dd')
+      : null;
+    const now = new Date().toISOString();
+    const optimisticTask: Task = {
+      id: crypto.randomUUID(),
+      title: trimmedTitle,
+      description: trimmedDescription,
+      description_text,
+      project_id: projectId,
+      priority: values.priority as Task['priority'],
+      effort: values.effort as Task['effort'],
+      due_date,
+      is_completed: false,
+      completed_at: null,
+      order: 0,
+      is_deleted: false,
+      parent_task_id: null,
+      recurrence_rule: null,
+      user_id: '',
+      created_at: now,
+      updated_at: now,
+    };
     adjustProjectTaskCount(projectId, 1);
+    handleClose();
     run(async () => {
+      publish(optimisticTask);
       try {
         await createTask({
-          title: values.title.trim(),
-          description: values.description.trim() || null,
-          description_text: truncateDescriptionText(values.descriptionPlain),
+          title: trimmedTitle,
+          description: trimmedDescription,
+          description_text,
           project_id: projectId,
           priority: values.priority,
           effort: values.effort,
-          due_date: values.dueDate ? format(values.dueDate, 'yyyy-MM-dd') : null,
+          due_date,
         });
-        handleClose();
-        router.refresh();
       } catch {
         adjustProjectTaskCount(projectId, -1);
         toast.error('Failed to create task');

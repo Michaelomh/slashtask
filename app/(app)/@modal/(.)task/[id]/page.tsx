@@ -8,25 +8,25 @@ import { Task } from '@/lib/task';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 
-export default function InterceptedTaskDetailPage({
+export default function InterceptedEditTaskPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { primedTask } = useTaskModal();
+  const { preloadedTask } = useTaskModal();
   const [fetched, setFetched] = useState<{
     task: Task;
     subTasks: Task[];
   } | null>(null);
 
-  const primed = primedTask?.id === id ? primedTask : null;
-  const initialTask = primed ?? fetched?.task ?? null;
+  const preloaded = preloadedTask?.id === id ? preloadedTask : null;
+  const initialTask = preloaded ?? fetched?.task ?? null;
   const initialSubTasks = fetched?.subTasks;
 
   useEffect(() => {
-    if (primed && initialSubTasks !== undefined) return;
+    if (preloaded && initialSubTasks !== undefined) return;
     if (fetched) return;
     let cancelled = false;
     getTaskWithSubtasks(id).then((res) => {
@@ -40,7 +40,7 @@ export default function InterceptedTaskDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [id, primed, initialSubTasks, fetched, router]);
+  }, [id, preloaded, initialSubTasks, fetched, router]);
 
   if (!initialTask) return <EditTaskModalSkeleton />;
 

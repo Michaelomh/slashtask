@@ -1,6 +1,7 @@
 'use client';
 
 import { NewTaskProvider } from '@/contexts/new-task-context';
+import { OptimisticTasksProvider } from '@/contexts/optimistic-tasks-context';
 import {
   ProjectsProvider,
   ProjectsProviderType,
@@ -20,7 +21,9 @@ export function AppProviders({
       initialCompletedCount={initialCompletedCount}
     >
       <NewTaskProvider>
-        <TaskModalProvider>{children}</TaskModalProvider>
+        <TaskModalProvider>
+          <OptimisticTasksProvider>{children}</OptimisticTasksProvider>
+        </TaskModalProvider>
       </NewTaskProvider>
     </ProjectsProvider>
   );

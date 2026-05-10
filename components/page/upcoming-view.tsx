@@ -9,8 +9,9 @@ import {
 import { buildDateGroups } from '@/lib/task-grouping';
 import { Task } from '@/lib/task';
 import { addDays, isBefore, max, parseISO, startOfDay } from 'date-fns';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useOptimistic, useRef, useState } from 'react';
 import { useProjects } from '@/contexts/projects-context';
+import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 
 const DAYS_PER_PAGE = 7;
 const MIN_HORIZON_DAYS = 30;
@@ -24,13 +25,21 @@ const defaultHorizon = addDays(today, MIN_HORIZON_DAYS);
 
 export function UpcomingView({ tasks: initialTasks }: UpcomingViewProps) {
   const { projects } = useProjects();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, addOptimisticTask] = useOptimistic<Task[], Task>(
+    initialTasks,
+    (state, t) => [...state, t]
+  );
   const [visibleCount, setVisibleCount] = useState(DAYS_PER_PAGE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const { subscribe } = useOptimisticTasks();
 
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
+  useEffect(
+    () =>
+      subscribe((t) => {
+        if (!t.is_completed && !t.parent_task_id) addOptimisticTask(t);
+      }),
+    [subscribe, addOptimisticTask]
+  );
 
   const noDueDateTasks = useMemo(() => {
     return tasks

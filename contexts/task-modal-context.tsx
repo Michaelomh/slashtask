@@ -4,15 +4,15 @@ import { Task } from '@/lib/task';
 import { createContext, useContext, useState } from 'react';
 
 type TaskModalContextType = {
-  primedTask: Task | null;
-  primeTask: (task: Task) => void;
-  clearPrimedTask: () => void;
+  preloadedTask: Task | null;
+  setPreloadTask: (task: Task) => void;
+  clearPreloadedTask: () => void;
 };
 
 const TaskModalContext = createContext<TaskModalContextType>({
-  primedTask: null,
-  primeTask: () => {},
-  clearPrimedTask: () => {},
+  preloadedTask: null,
+  setPreloadTask: () => {},
+  clearPreloadedTask: () => {},
 });
 
 export function useTaskModal() {
@@ -20,13 +20,13 @@ export function useTaskModal() {
 }
 
 export function TaskModalProvider({ children }: React.PropsWithChildren) {
-  const [primedTask, setPrimedTask] = useState<Task | null>(null);
+  const [preloadedTask, setPreloadedTask] = useState<Task | null>(null);
   return (
     <TaskModalContext.Provider
       value={{
-        primedTask,
-        primeTask: setPrimedTask,
-        clearPrimedTask: () => setPrimedTask(null),
+        preloadedTask,
+        setPreloadTask: setPreloadedTask,
+        clearPreloadedTask: () => setPreloadedTask(null),
       }}
     >
       {children}

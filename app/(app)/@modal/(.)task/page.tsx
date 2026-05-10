@@ -13,12 +13,13 @@ export default function InterceptedNewTaskPage({
   searchParams: Promise<{ date?: string; duplicate?: string }>;
 }) {
   const { duplicate } = use(searchParams);
-  const { primedTask } = useTaskModal();
+  const { preloadedTask } = useTaskModal();
   const [fetched, setFetched] = useState<Task | null>(null);
 
-  const primed = duplicate && primedTask?.id === duplicate ? primedTask : null;
-  const initialTask = primed ?? fetched ?? undefined;
-  const needsFetch = !!duplicate && !primed && !fetched;
+  const preloaded =
+    duplicate && preloadedTask?.id === duplicate ? preloadedTask : null;
+  const initialTask = preloaded ?? fetched ?? undefined;
+  const needsFetch = !!duplicate && !preloaded && !fetched;
 
   useEffect(() => {
     if (!needsFetch || !duplicate) return;

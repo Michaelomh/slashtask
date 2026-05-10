@@ -36,7 +36,7 @@ type TaskItemProps = {
 export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
   const router = useRouter();
   const { adjustProjectTaskCount, adjustCompletedCount } = useProjects();
-  const { primeTask } = useTaskModal();
+  const { setPreloadTask } = useTaskModal();
   const [completed, setCompleted] = useState(task.is_completed);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { isPending: isCompletePending, run: runComplete } = useServerAction();
@@ -149,7 +149,7 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
                   return;
                 e.preventDefault();
-                primeTask(task);
+                setPreloadTask(task);
                 router.push(`/task/${task.id}`);
               }}
               className={cn(
@@ -162,7 +162,9 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
                 tabIndex={0}
                 aria-label="Complete task"
                 onClick={handleCompleteTask}
-                onKeyDown={(e) => e.key === 'Enter' && handleCompleteTask(e as never)}
+                onKeyDown={(e) =>
+                  e.key === 'Enter' && handleCompleteTask(e as never)
+                }
                 className={cn(
                   'text-muted-foreground/50 hover:text-primary mt-0.5 shrink-0 transition-colors',
                   isCompletePending && 'opacity-50'
@@ -215,7 +217,7 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
         <ContextMenuContent>
           <ContextMenuItem
             onClick={() => {
-              primeTask(task);
+              setPreloadTask(task);
               router.push(`/task?duplicate=${task.id}`);
             }}
           >

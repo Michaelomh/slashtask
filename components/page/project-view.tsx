@@ -8,22 +8,41 @@ import {
 import { groupTasksByDate } from '@/lib/task-grouping';
 import { Task } from '@/lib/task';
 import { isBefore, parseISO, startOfDay } from 'date-fns';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useOptimistic } from 'react';
 import { useProjects } from '@/contexts/projects-context';
+import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 
 const today = startOfDay(new Date());
 
 type ProjectViewProps = {
   tasks: Task[];
+  projectId: string;
 };
 
-export function ProjectView({ tasks: initialTasks }: ProjectViewProps) {
+export function ProjectView({
+  tasks: initialTasks,
+  projectId,
+}: ProjectViewProps) {
   const { projects } = useProjects();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, addOptimisticTask] = useOptimistic<Task[], Task>(
+    initialTasks,
+    (state, t) => [...state, t]
+  );
+  const { subscribe } = useOptimisticTasks();
 
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
+  useEffect(
+    () =>
+      subscribe((t) => {
+        if (
+          !t.is_completed &&
+          !t.parent_task_id &&
+          t.project_id === projectId
+        ) {
+          addOptimisticTask(t);
+        }
+      }),
+    [subscribe, addOptimisticTask, projectId]
+  );
 
   const noDueDateTasks = useMemo(() => {
     return tasks

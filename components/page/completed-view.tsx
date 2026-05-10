@@ -1,8 +1,9 @@
 'use client';
 
 import { Task } from '@/lib/task';
-import { useEffect, useState } from 'react';
+import { useEffect, useOptimistic } from 'react';
 import { useProjects } from '@/contexts/projects-context';
+import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 import { TaskItem } from '../task-item';
 
 type CompletedViewProps = {
@@ -11,11 +12,19 @@ type CompletedViewProps = {
 
 export function CompletedView({ tasks: initialTasks }: CompletedViewProps) {
   const { projects } = useProjects();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, addOptimisticTask] = useOptimistic<Task[], Task>(
+    initialTasks,
+    (state, t) => [...state, t]
+  );
+  const { subscribe } = useOptimisticTasks();
 
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
+  useEffect(
+    () =>
+      subscribe((t) => {
+        if (t.is_completed) addOptimisticTask(t);
+      }),
+    [subscribe, addOptimisticTask]
+  );
 
   return (
     <div className="flex flex-col">

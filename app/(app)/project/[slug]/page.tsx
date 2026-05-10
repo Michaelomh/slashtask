@@ -84,7 +84,7 @@ export default async function ProjectPage({
           No upcoming tasks in this project.
         </p>
       ) : (
-        <ProjectView tasks={tasks} />
+        <ProjectView tasks={tasks} projectId={project.id} />
       )}
     </div>
   );
