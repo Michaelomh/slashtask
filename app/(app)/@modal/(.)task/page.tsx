@@ -1,8 +1,8 @@
 'use client';
 
 import { getTaskById } from '@/app/actions/tasks';
+import { ModalSkeleton } from '@/components/molecule/modal-skeleton';
 import { NewTaskModal } from '@/components/new-task-modal';
-import { NewTaskModalSkeleton } from '@/components/new-task-modal-skeleton';
 import { useTaskModal } from '@/contexts/task-modal-context';
 import { Task } from '@/lib/task';
 import { use, useEffect, useState } from 'react';
@@ -33,7 +33,7 @@ export default function InterceptedNewTaskPage({
     };
   }, [duplicate, needsFetch]);
 
-  if (needsFetch) return <NewTaskModalSkeleton />;
+  if (!needsFetch) return <ModalSkeleton />;
 
   return <NewTaskModal initialTask={initialTask} open />;
 }

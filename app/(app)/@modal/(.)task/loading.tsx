@@ -1,5 +1,5 @@
-import { NewTaskModalSkeleton } from '@/components/new-task-modal-skeleton';
+import { ModalSkeleton } from '@/components/molecule/modal-skeleton';
 
 export default function InterceptedTaskDetailLoading() {
-  return <NewTaskModalSkeleton />;
+  return <ModalSkeleton />;
 }

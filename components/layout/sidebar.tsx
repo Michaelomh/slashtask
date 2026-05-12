@@ -119,11 +119,12 @@ export function SidebarContent() {
     const onProjectPage = pathname.includes(`/project/${projectSlug}`);
     setProjects((prev) => prev.filter((p) => p.id !== id));
     if (onProjectPage) {
-      startTransition(() => router.push('/'));
+      startTransition(() => router.push('/upcoming'));
     }
     try {
       const deleted = await deleteProject(id);
       toast.success(`${deleted.name} project has been successfully deleted.`);
+      setEditTarget(null);
     } catch {
       setProjects(previousProjects);
       toast.error('Failed to delete project');

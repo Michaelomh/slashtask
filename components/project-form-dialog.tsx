@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 import { useServerAction } from '@/hooks/use-server-action';
+import { useRouter } from 'next/navigation';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
@@ -98,6 +99,7 @@ export function ProjectFormDialog({
   onSave,
   onDelete,
 }: ProjectFormDialogProps) {
+  const router = useRouter();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { isPending: isSaving, run: runSave } = useServerAction();
   const { isPending: isDeleting, run: runDelete } = useServerAction();
@@ -133,8 +135,8 @@ export function ProjectFormDialog({
   }
 
   function handleDelete() {
+    router.prefetch('/upcoming');
     setShowDeleteConfirm(false);
-    handleClose();
     runDelete(async () => {
       await onDelete?.();
     });
@@ -173,6 +175,7 @@ export function ProjectFormDialog({
                     </form.Field>
                     <Input
                       autoFocus
+                      autoComplete="off"
                       id={field.name}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
