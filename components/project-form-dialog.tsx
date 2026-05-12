@@ -3,14 +3,23 @@
 import { ProjectInput } from '@/app/actions/projects';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Field, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Project } from '@/lib/project';
 import { cn } from '@/lib/utils';
+import { useForm } from '@tanstack/react-form';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { z } from 'zod';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 import { useServerAction } from '@/hooks/use-server-action';
+
+const projectSchema = z.object({
+  name: z.string().min(1, 'Project name is required'),
+  emoji: z.string(),
+  color: z.string(),
+});
 
 const EMOJI_OPTIONS = [
   '💼',
@@ -89,62 +98,51 @@ export function ProjectFormDialog({
   onSave,
   onDelete,
 }: ProjectFormDialogProps) {
-  const [name, setName] = useState(data?.name ?? '');
-  const [emoji, setEmoji] = useState(data?.emoji ?? '📁');
-  const [color, setColor] = useState(data?.color ?? '#3498db');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { isPending: isSaving, run: runSave } = useServerAction();
   const { isPending: isDeleting, run: runDelete } = useServerAction();
+
+  const form = useForm({
+    defaultValues: {
+      name: data?.name ?? '',
+      emoji: data?.emoji ?? '📁',
+      color: data?.color ?? '#3498db',
+    },
+    validators: { onSubmit: projectSchema },
+    onSubmit: async ({ value }) => {
+      runSave(async () => {
+        try {
+          await onSave({
+            id: mode === 'edit' && data ? data.id : undefined,
+            name: value.name.trim(),
+            emoji: value.emoji,
+            color: value.color,
+            order: data?.order ?? 0,
+          });
+          if (mode === 'create') form.reset();
+          handleClose();
+        } catch {
+          // keep modal open on error
+        }
+      });
+    },
+  });
 
   function handleClose() {
     onOpenChange(false);
   }
 
-  function resetForm() {
-    setName('');
-    setEmoji('📁');
-    setColor('#3498db');
-  }
-
-  function handleSave() {
-    if (!name.trim()) return;
-    runSave(async () => {
-      try {
-        await onSave({
-          id: mode === 'edit' && data ? data.id : undefined,
-          name: name.trim(),
-          emoji,
-          color,
-          order: data?.order ?? 0,
-        });
-        if (mode === 'create') resetForm();
-        handleClose();
-      } catch {
-        // keep modal open on error
-      }
-    });
-  }
-
   function handleDelete() {
+    setShowDeleteConfirm(false);
+    handleClose();
     runDelete(async () => {
       await onDelete?.();
-      setShowDeleteConfirm(false);
-      handleClose();
     });
-  }
-
-  function handleOpenChange(next: boolean) {
-    if (next) {
-      setName(data?.name ?? '');
-      setEmoji(data?.emoji ?? '📁');
-      setColor(data?.color ?? '#3498db');
-    }
-    onOpenChange(next);
   }
 
   return (
     <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={(next) => onOpenChange(next)}>
         <DialogContent
           showCloseButton={false}
           className="gap-0 p-0 sm:max-w-sm"
@@ -156,64 +154,97 @@ export function ProjectFormDialog({
             </h2>
 
             {/* Name */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-xs font-medium">
-                Name
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{emoji}</span>
-                <Input
-                  autoFocus
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                  placeholder="Project name"
-                  className="flex-1"
-                />
-              </div>
-            </div>
+            <form.Field name="name">
+              {(field) => (
+                <Field
+                  className="gap-1.5"
+                  data-invalid={field.state.meta.errors.length > 0 || undefined}
+                >
+                  <label className="text-muted-foreground text-xs font-medium">
+                    Name
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <form.Field name="emoji">
+                      {(emojiField) => (
+                        <span className="text-xl">
+                          {emojiField.state.value}
+                        </span>
+                      )}
+                    </form.Field>
+                    <Input
+                      autoFocus
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      onKeyDown={(e) =>
+                        e.key === 'Enter' && form.handleSubmit()
+                      }
+                      placeholder="Project name"
+                      className="flex-1"
+                    />
+                  </div>
+                  <FieldError
+                    errors={field.state.meta.errors.map((e) => ({
+                      message: e?.message,
+                    }))}
+                  />
+                </Field>
+              )}
+            </form.Field>
 
             {/* Emoji */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-xs font-medium">
-                Emoji
-              </label>
-              <div className="grid grid-cols-8 gap-1">
-                {EMOJI_OPTIONS.map((e) => (
-                  <button
-                    key={e}
-                    onClick={() => setEmoji(e)}
-                    className={cn(
-                      'hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md text-base transition-colors',
-                      emoji === e && 'bg-accent ring-ring ring-2'
-                    )}
-                  >
-                    {e}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <form.Field name="emoji">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-muted-foreground text-xs font-medium">
+                    Emoji
+                  </label>
+                  <div className="grid grid-cols-8 gap-1">
+                    {EMOJI_OPTIONS.map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        onClick={() => field.handleChange(e)}
+                        className={cn(
+                          'hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md text-base transition-colors',
+                          field.state.value === e &&
+                            'bg-accent ring-ring ring-2'
+                        )}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </form.Field>
 
             {/* Color */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-xs font-medium">
-                Color
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {COLOR_OPTIONS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setColor(c)}
-                    className={cn(
-                      'h-6 w-6 rounded-full transition-transform hover:scale-110',
-                      color === c &&
-                        'ring-ring ring-offset-background ring-2 ring-offset-2'
-                    )}
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
-              </div>
-            </div>
+            <form.Field name="color">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-muted-foreground text-xs font-medium">
+                    Color
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {COLOR_OPTIONS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => field.handleChange(c)}
+                        className={cn(
+                          'h-6 w-6 rounded-full transition-transform hover:scale-110',
+                          field.state.value === c &&
+                            'ring-ring ring-offset-background ring-2 ring-offset-2'
+                        )}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </form.Field>
           </div>
 
           {/* Footer */}
@@ -243,14 +274,18 @@ export function ProjectFormDialog({
               >
                 Cancel
               </Button>
-              <Button
-                size="sm"
-                disabled={!name.trim() || isSaving}
-                onClick={handleSave}
-              >
-                {isSaving ? <Spinner size="sm" className="mr-1.5" /> : null}
-                {mode === 'create' ? 'Add project' : 'Save'}
-              </Button>
+              <form.Subscribe selector={(s) => s.canSubmit}>
+                {(canSubmit) => (
+                  <Button
+                    size="sm"
+                    disabled={!canSubmit || isSaving}
+                    onClick={() => form.handleSubmit()}
+                  >
+                    {isSaving ? <Spinner size="sm" className="mr-1.5" /> : null}
+                    {mode === 'create' ? 'Add project' : 'Save'}
+                  </Button>
+                )}
+              </form.Subscribe>
             </div>
           </div>
         </DialogContent>

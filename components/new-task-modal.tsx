@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   TaskEditor,
+  TaskEditorHandle,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
@@ -13,7 +14,7 @@ import { format } from 'date-fns';
 import { useProjects } from '@/contexts/projects-context';
 import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { formatDueDate } from '@/lib/date';
 import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
@@ -33,8 +34,10 @@ export function NewTaskModal({
 }: NewTaskModalProps) {
   const router = useRouter();
   const { adjustProjectTaskCount } = useProjects();
-  const { publish } = useOptimisticTasks();
+  const { publishAdd } = useOptimisticTasks();
   const { isPending, run } = useServerAction();
+  const editorRef = useRef<TaskEditorHandle>(null);
+  const [hasTitle, setHasTitle] = useState(!!initialTask?.title.trim());
 
   const initialValues: TaskEditorValues = {
     title: initialTask ? initialTask.title : '',
@@ -46,8 +49,6 @@ export function NewTaskModal({
     dueDate: initialTask ? formatDueDate(initialTask.due_date) : null,
   };
 
-  const [values, setValues] = useState<TaskEditorValues>(initialValues);
-
   function handleClose() {
     if (onClose) {
       onClose();
@@ -56,8 +57,7 @@ export function NewTaskModal({
     }
   }
 
-  function handleSubmit() {
-    if (!values.title.trim()) return;
+  function handleCreate(values: TaskEditorValues) {
     const projectId = values.project?.id ?? null;
     const trimmedTitle = values.title.trim();
     const trimmedDescription = values.description.trim() || null;
@@ -88,7 +88,7 @@ export function NewTaskModal({
     adjustProjectTaskCount(projectId, 1);
     handleClose();
     run(async () => {
-      publish(optimisticTask);
+      publishAdd(optimisticTask);
       try {
         await createTask({
           title: trimmedTitle,
@@ -111,9 +111,10 @@ export function NewTaskModal({
       <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-lg">
         <div className="px-4 pt-4 pb-3">
           <TaskEditor
+            ref={editorRef}
             initialValues={initialValues}
-            onChange={setValues}
-            onSubmit={handleSubmit}
+            onSubmit={handleCreate}
+            onTitleChange={(t) => setHasTitle(!!t.trim())}
             onCancel={onClose}
             autoFocus
           />
@@ -131,8 +132,8 @@ export function NewTaskModal({
             </Button>
             <Button
               size="sm"
-              disabled={!values.title.trim() || isPending}
-              onClick={handleSubmit}
+              disabled={!hasTitle || isPending}
+              onClick={() => editorRef.current?.submit()}
             >
               {isPending ? <Spinner size="sm" className="mr-1.5" /> : null}
               Add task

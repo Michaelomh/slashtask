@@ -115,15 +115,17 @@ export function SidebarContent() {
   }
 
   async function handleProjectDelete(id: string, projectSlug: string) {
+    const previousProjects = projects;
+    const onProjectPage = pathname.includes(`/project/${projectSlug}`);
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    if (onProjectPage) {
+      startTransition(() => router.push('/'));
+    }
     try {
       const deleted = await deleteProject(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-
       toast.success(`${deleted.name} project has been successfully deleted.`);
-      if (pathname.includes(`/project/${projectSlug}`)) {
-        router.push('/');
-      }
     } catch {
+      setProjects(previousProjects);
       toast.error('Failed to delete project');
     }
   }

@@ -10,7 +10,10 @@ import { Task } from '@/lib/task';
 import { isBefore, parseISO, startOfDay } from 'date-fns';
 import { useEffect, useMemo, useOptimistic } from 'react';
 import { useProjects } from '@/contexts/projects-context';
-import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
+import {
+  OptimisticTaskAction,
+  useOptimisticTasks,
+} from '@/contexts/optimistic-tasks-context';
 
 const today = startOfDay(new Date());
 
@@ -24,24 +27,31 @@ export function ProjectView({
   projectId,
 }: ProjectViewProps) {
   const { projects } = useProjects();
-  const [tasks, addOptimisticTask] = useOptimistic<Task[], Task>(
-    initialTasks,
-    (state, t) => [...state, t]
-  );
+  const [tasks, dispatchOptimistic] = useOptimistic<
+    Task[],
+    OptimisticTaskAction
+  >(initialTasks, (state, action) => {
+    if (action.type === 'add') return [...state, action.task];
+    return state.filter((t) => t.id !== action.id);
+  });
   const { subscribe } = useOptimisticTasks();
 
   useEffect(
     () =>
-      subscribe((t) => {
-        if (
-          !t.is_completed &&
-          !t.parent_task_id &&
-          t.project_id === projectId
-        ) {
-          addOptimisticTask(t);
+      subscribe((action) => {
+        if (action.type === 'add') {
+          if (
+            !action.task.is_completed &&
+            !action.task.parent_task_id &&
+            action.task.project_id === projectId
+          ) {
+            dispatchOptimistic(action);
+          }
+        } else {
+          dispatchOptimistic(action);
         }
       }),
-    [subscribe, addOptimisticTask, projectId]
+    [subscribe, dispatchOptimistic, projectId]
   );
 
   const noDueDateTasks = useMemo(() => {

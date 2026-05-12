@@ -3,7 +3,10 @@
 import { Task } from '@/lib/task';
 import { useEffect, useOptimistic } from 'react';
 import { useProjects } from '@/contexts/projects-context';
-import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
+import {
+  OptimisticTaskAction,
+  useOptimisticTasks,
+} from '@/contexts/optimistic-tasks-context';
 import { TaskItem } from '../task-item';
 
 type CompletedViewProps = {
@@ -12,18 +15,25 @@ type CompletedViewProps = {
 
 export function CompletedView({ tasks: initialTasks }: CompletedViewProps) {
   const { projects } = useProjects();
-  const [tasks, addOptimisticTask] = useOptimistic<Task[], Task>(
-    initialTasks,
-    (state, t) => [...state, t]
-  );
+  const [tasks, dispatchOptimistic] = useOptimistic<
+    Task[],
+    OptimisticTaskAction
+  >(initialTasks, (state, action) => {
+    if (action.type === 'add') return [...state, action.task];
+    return state.filter((t) => t.id !== action.id);
+  });
   const { subscribe } = useOptimisticTasks();
 
   useEffect(
     () =>
-      subscribe((t) => {
-        if (t.is_completed) addOptimisticTask(t);
+      subscribe((action) => {
+        if (action.type === 'add') {
+          if (action.task.is_completed) dispatchOptimistic(action);
+        } else {
+          dispatchOptimistic(action);
+        }
       }),
-    [subscribe, addOptimisticTask]
+    [subscribe, dispatchOptimistic]
   );
 
   return (

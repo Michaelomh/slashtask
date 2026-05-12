@@ -28,12 +28,19 @@ Collect the matching test paths. If none match, skip tests entirely.
 
 ## Step 3 — Run the checks (sequential, run-all)
 
-Run in this order. Do not stop on failure — capture each result and continue.
+Run all checks in a **single Bash call** chained with `;` so every command runs regardless of the previous exit code. Never split them into parallel Bash tool calls — a non-zero exit from one will cancel the others.
 
-1. `pnpm format:check`
-2. `pnpm lint`
-3. `pnpm check-types`
-4. If tests are relevant: `pnpm exec vitest run <test-paths>` (pass the specific test files only, not the whole suite)
+```bash
+pnpm format:check 2>&1; pnpm lint 2>&1; pnpm check-types 2>&1
+```
+
+If tests are relevant, append them to the same chain:
+
+```bash
+pnpm format:check 2>&1; pnpm lint 2>&1; pnpm check-types 2>&1; pnpm test <test-paths> 2>&1
+```
+
+Capture the full output, note which sections passed or failed, then proceed to Step 4.
 
 ## Step 4 — Handle failures
 

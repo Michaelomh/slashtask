@@ -7,7 +7,7 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useForm } from '@tanstack/react-form';
 import { useState } from 'react';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const loginSchema = z.object({
   email: z.email('Enter a valid email address'),

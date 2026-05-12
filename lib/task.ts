@@ -40,6 +40,6 @@ export function isTaskOverdue(task: Task, completed: boolean): boolean {
  *
  * @param text - raw description plain text
  */
-export function truncateDescriptionText(text = ""): string {
+export function truncateDescriptionText(text = ''): string {
   return text.trim().slice(0, 500);
 }

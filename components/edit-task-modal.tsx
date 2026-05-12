@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   TaskEditor,
+  TaskEditorHandle,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Task } from '@/lib/task';
 import { format } from 'date-fns';
@@ -14,22 +14,22 @@ import { Save, Trash2 } from 'lucide-react';
 import {
   deleteTask,
   deleteTaskWithSubtasks,
-  getTaskWithSubtasks,
   restoreTasks,
   updateTask,
 } from '@/app/actions/tasks';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 import { SubTaskSection } from './subtask-section';
 import { useProjects } from '@/contexts/projects-context';
+import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 import { useServerAction } from '@/hooks/use-server-action';
 
 type EditTaskModalProps = {
   id: string;
   initialTask: Task;
-  initialSubTasks?: Task[];
+  initialSubTasks: Task[];
 };
 
 export function EditTaskModal({
@@ -40,24 +40,13 @@ export function EditTaskModal({
   const router = useRouter();
   const { projects, adjustProjectTaskCount, adjustCompletedCount } =
     useProjects();
+  const { publishRemove } = useOptimisticTasks();
   const { isPending: isSaving, run: runSave } = useServerAction();
   const { isPending: isDeleting, run: runDelete } = useServerAction();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const editorRef = useRef<TaskEditorHandle>(null);
   const task = initialTask;
-  const [subTasks, setSubTasks] = useState<Task[] | undefined>(initialSubTasks);
-  const subTasksLoaded = subTasks !== undefined;
-
-  useEffect(() => {
-    if (initialSubTasks !== undefined) return;
-    let cancelled = false;
-    getTaskWithSubtasks(id).then((res) => {
-      if (cancelled) return;
-      setSubTasks(res.subTasks);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [id, initialSubTasks]);
+  const subTasks = initialSubTasks;
 
   const initialValues: TaskEditorValues = {
     title: task.title,
@@ -69,11 +58,7 @@ export function EditTaskModal({
     dueDate: task.due_date ? new Date(task.due_date + 'T00:00:00') : null,
   };
 
-  // use ref is the right call, since it's not react and we only need values on submit.
-  const valuesRef = useRef<TaskEditorValues>(initialValues);
-
-  function handleSave() {
-    const v = valuesRef.current;
+  function handleSave(v: TaskEditorValues) {
     const oldProjectId = task.project_id ?? null;
     const newProjectId = v.project?.id ?? null;
     if (oldProjectId !== newProjectId && !task.is_completed) {
@@ -104,7 +89,6 @@ export function EditTaskModal({
   }
 
   function handleDeleteClick() {
-    if (!subTasks) return;
     if (subTasks.length > 0) {
       setShowDeleteConfirm(true);
     } else {
@@ -113,7 +97,6 @@ export function EditTaskModal({
   }
 
   function handleDelete() {
-    if (!subTasks) return;
     const allTasks = [task, ...subTasks];
     const incompleteTasks = allTasks.filter((t) => !t.is_completed);
     const completedTaskCount = allTasks.length - incompleteTasks.length;
@@ -132,12 +115,15 @@ export function EditTaskModal({
       adjustCompletedCount(-completedTaskCount);
     }
     const hadSubTasks = subTasks.length > 0;
+    setShowDeleteConfirm(false);
+    router.back();
     runDelete(async () => {
+      publishRemove(task.id);
+      for (const sub of subTasks) publishRemove(sub.id);
       try {
         const deletedIds = hadSubTasks
           ? await deleteTaskWithSubtasks(id)
           : await deleteTask(id).then(() => [id]);
-        router.back();
         toast('Task deleted', {
           duration: 5000,
           action: {
@@ -166,18 +152,11 @@ export function EditTaskModal({
         >
           <div className="px-4 pt-4 pb-3">
             <TaskEditor
+              ref={editorRef}
               initialValues={initialValues}
-              onChange={(v) => {
-                valuesRef.current = v;
-              }}
+              onSubmit={handleSave}
             />
-            {subTasks ? (
-              <SubTaskSection subTasks={subTasks} parentTask={task} />
-            ) : (
-              <div className="mt-4 space-y-2">
-                <Skeleton className="h-8 w-28" />
-              </div>
-            )}
+            <SubTaskSection subTasks={subTasks} parentTask={task} />
           </div>
 
           <div className="border-border flex items-center justify-between border-t px-4 py-3">
@@ -185,7 +164,7 @@ export function EditTaskModal({
               variant="ghost"
               size="sm"
               onClick={handleDeleteClick}
-              disabled={isDeleting || !subTasksLoaded}
+              disabled={isDeleting}
               className="text-muted-foreground hover:text-destructive gap-1.5"
             >
               {isDeleting ? (
@@ -198,7 +177,7 @@ export function EditTaskModal({
             <Button
               variant="outline"
               size="sm"
-              onClick={handleSave}
+              onClick={() => editorRef.current?.submit()}
               disabled={isSaving}
               className="gap-1.5"
             >
@@ -213,7 +192,7 @@ export function EditTaskModal({
         showDeleteConfirmationDialog={showDeleteConfirm}
         setShowDeleteConfirmationDialog={setShowDeleteConfirm}
         title="Are you sure?"
-        description={`This will also delete ${subTasks?.length ?? 0} sub-task${(subTasks?.length ?? 0) !== 1 ? 's' : ''}.`}
+        description={`This will also delete ${subTasks.length} sub-task${subTasks.length !== 1 ? 's' : ''}.`}
         isDeleting={isDeleting}
         handleDelete={handleDelete}
       />

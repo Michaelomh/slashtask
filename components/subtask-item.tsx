@@ -7,10 +7,14 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { CheckCircle2, Circle, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
-import { TaskEditor, TaskEditorValues } from './molecule/task-editor';
+import {
+  TaskEditor,
+  TaskEditorHandle,
+  TaskEditorValues,
+} from './molecule/task-editor';
 import { Spinner } from './ui/spinner';
 import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
 import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
@@ -27,22 +31,22 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
   const { projects, adjustProjectTaskCount, adjustCompletedCount } =
     useProjects();
   const router = useRouter();
+  const [displayTask, setDisplayTask] = useState<Task>(task);
   const [completed, setCompleted] = useState(task.is_completed);
   const [updatingSubTask, setUpdatingSubTask] = useState(false);
-  const [editorValues, setEditorValues] = useState<TaskEditorValues>({
-    title: task.title ?? '',
-    description: task.description ?? '',
-    descriptionPlain: task.description_text ?? '',
-    priority: task.priority ?? DEFAULT_PRIORITY_INDEX,
-    effort: task.effort ?? DEFAULT_EFFORT_INDEX,
-    dueDate: task.due_date ? new Date(task.due_date + 'T00:00:00') : null,
-    project: projects.find((p) => p.id === task.project_id) ?? null,
-  });
+  const [hasTitle, setHasTitle] = useState(!!task.title.trim());
+  const editorRef = useRef<TaskEditorHandle>(null);
   const { isPending: isCompletePending, run: runComplete } = useServerAction();
   const { isPending: isSaving, run: runSave } = useServerAction();
   const { isPending: isDeleting, run: runDelete } = useServerAction();
 
-  const isOverdue = isTaskOverdue(task, completed);
+  useEffect(() => {
+    setDisplayTask(task);
+  }, [task]);
+
+  const displayProject =
+    projects.find((p) => p.id === displayTask.project_id) ?? project;
+  const isOverdue = isTaskOverdue(displayTask, completed);
 
   function handleCompleteTask(e: React.MouseEvent) {
     e.preventDefault();
@@ -101,27 +105,42 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
     });
   }
 
-  function handleUpdateSubTask() {
-    if (!editorValues.title.trim()) return;
+  function handleUpdateSubTask(values: TaskEditorValues) {
+    const previous = displayTask;
+    const title = values.title.trim();
+    const description = values.description.trim() || null;
+    const description_text = truncateDescriptionText(values.descriptionPlain);
+    const due_date = values.dueDate
+      ? format(values.dueDate, 'yyyy-MM-dd')
+      : null;
+    const project_id = values.project?.id ?? null;
+    const next: Task = {
+      ...displayTask,
+      title,
+      description,
+      description_text,
+      priority: values.priority as Task['priority'],
+      effort: values.effort as Task['effort'],
+      due_date,
+      project_id,
+      updated_at: new Date().toISOString(),
+    };
+    setDisplayTask(next);
+    setUpdatingSubTask(false);
     runSave(async () => {
       try {
         await updateTask(task.id, {
-          title: editorValues.title.trim(),
-          priority: editorValues.priority,
-          effort: editorValues.effort,
-          due_date: editorValues.dueDate
-            ? format(editorValues.dueDate, 'yyyy-MM-dd')
-            : null,
-          project_id: editorValues.project?.id ?? null,
-          description: editorValues.description.trim() || null,
-          description_text: truncateDescriptionText(
-            editorValues.descriptionPlain
-          ),
+          title,
+          priority: values.priority,
+          effort: values.effort,
+          due_date,
+          project_id,
+          description,
+          description_text,
         });
-        setUpdatingSubTask(false);
-        router.refresh();
-        toast.success('Sub-task updated');
       } catch {
+        setDisplayTask(previous);
+        setUpdatingSubTask(true);
         toast.error('Failed to update sub-task');
       }
     });
@@ -133,9 +152,20 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
         <div className="border-border mt-1 w-full rounded-md border">
           <div className="px-3 pt-3 pb-2">
             <TaskEditor
-              initialValues={editorValues}
-              onChange={setEditorValues}
+              ref={editorRef}
+              initialValues={{
+                title: task.title ?? '',
+                description: task.description ?? '',
+                descriptionPlain: task.description_text ?? '',
+                priority: task.priority ?? DEFAULT_PRIORITY_INDEX,
+                effort: task.effort ?? DEFAULT_EFFORT_INDEX,
+                dueDate: task.due_date
+                  ? new Date(task.due_date + 'T00:00:00')
+                  : null,
+                project: projects.find((p) => p.id === task.project_id) ?? null,
+              }}
               onSubmit={handleUpdateSubTask}
+              onTitleChange={(t) => setHasTitle(!!t.trim())}
               onCancel={() => setUpdatingSubTask(false)}
               autoFocus
             />
@@ -168,12 +198,10 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
               </Button>
               <Button
                 size="sm"
-                disabled={!editorValues.title.trim() || isSaving}
-                onClick={handleUpdateSubTask}
+                disabled={!hasTitle || isSaving}
+                onClick={() => editorRef.current?.submit()}
               >
-                {isSaving ? (
-                  <Spinner size="sm" className="mr-1.5" />
-                ) : null}
+                {isSaving ? <Spinner size="sm" className="mr-1.5" /> : null}
                 Update sub-task
               </Button>
             </div>
@@ -215,7 +243,7 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
                 completed && 'text-muted-foreground'
               )}
             >
-              {task.title}
+              {displayTask.title}
               <span
                 className={cn(
                   'absolute top-1/2 left-0 h-px w-full origin-left bg-current transition-transform duration-300',
@@ -226,12 +254,15 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
           </div>
 
           {/* Project tag */}
-          {project && (
+          {displayProject && (
             <span className="text-muted-foreground ml-auto flex max-w-20 shrink-0 items-center gap-1 text-xs">
-              <span className="font-bold" style={{ color: project.color }}>
-                {project.emoji}
+              <span
+                className="font-bold"
+                style={{ color: displayProject.color }}
+              >
+                {displayProject.emoji}
               </span>
-              <span className="truncate">{project.name}</span>
+              <span className="truncate">{displayProject.name}</span>
             </span>
           )}
         </button>

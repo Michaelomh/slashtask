@@ -11,7 +11,10 @@ import { Task } from '@/lib/task';
 import { addDays, isBefore, max, parseISO, startOfDay } from 'date-fns';
 import { useEffect, useMemo, useOptimistic, useRef, useState } from 'react';
 import { useProjects } from '@/contexts/projects-context';
-import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
+import {
+  OptimisticTaskAction,
+  useOptimisticTasks,
+} from '@/contexts/optimistic-tasks-context';
 
 const DAYS_PER_PAGE = 7;
 const MIN_HORIZON_DAYS = 30;
@@ -25,20 +28,29 @@ const defaultHorizon = addDays(today, MIN_HORIZON_DAYS);
 
 export function UpcomingView({ tasks: initialTasks }: UpcomingViewProps) {
   const { projects } = useProjects();
-  const [tasks, addOptimisticTask] = useOptimistic<Task[], Task>(
-    initialTasks,
-    (state, t) => [...state, t]
-  );
+  const [tasks, dispatchOptimistic] = useOptimistic<
+    Task[],
+    OptimisticTaskAction
+  >(initialTasks, (state, action) => {
+    if (action.type === 'add') return [...state, action.task];
+    return state.filter((t) => t.id !== action.id);
+  });
   const [visibleCount, setVisibleCount] = useState(DAYS_PER_PAGE);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const { subscribe } = useOptimisticTasks();
 
   useEffect(
     () =>
-      subscribe((t) => {
-        if (!t.is_completed && !t.parent_task_id) addOptimisticTask(t);
+      subscribe((action) => {
+        if (action.type === 'add') {
+          if (!action.task.is_completed && !action.task.parent_task_id) {
+            dispatchOptimistic(action);
+          }
+        } else {
+          dispatchOptimistic(action);
+        }
       }),
-    [subscribe, addOptimisticTask]
+    [subscribe, dispatchOptimistic]
   );
 
   const noDueDateTasks = useMemo(() => {
