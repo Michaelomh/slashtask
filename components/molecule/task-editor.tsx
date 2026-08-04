@@ -60,6 +60,7 @@ type TaskEditorProps = {
   autoFocus?: boolean;
   titlePlaceholder?: string;
   className?: string;
+  isSubTask?: boolean;
 };
 
 export const TaskEditor = forwardRef<TaskEditorHandle, TaskEditorProps>(
@@ -72,6 +73,7 @@ export const TaskEditor = forwardRef<TaskEditorHandle, TaskEditorProps>(
       autoFocus,
       titlePlaceholder = 'Task name',
       className,
+      isSubTask = false,
     },
     ref
   ) {
@@ -145,6 +147,7 @@ export const TaskEditor = forwardRef<TaskEditorHandle, TaskEditorProps>(
                           onPriorityChange={priorityField.handleChange}
                           effort={effortField.state.value}
                           onEffortChange={effortField.handleChange}
+                          isSubTask={isSubTask}
                         />
                       )}
                     </form.Field>

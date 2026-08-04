@@ -168,6 +168,7 @@ export function SubTaskItem({ task, project }: SubTaskItemProps) {
               onTitleChange={(t) => setHasTitle(!!t.trim())}
               onCancel={() => setUpdatingSubTask(false)}
               autoFocus
+              isSubTask
             />
           </div>
           <div className="border-border flex items-center justify-between border-t px-3 py-2">

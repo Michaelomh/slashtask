@@ -50,6 +50,47 @@ export function buildDateGroups(
   return groups;
 }
 
+/**
+ * Splits a flat task list into top-level parents and a map of parentId ->
+ * subtasks. Both lists are sorted by `(order, created_at)`. Subtasks whose
+ * parent isn't in the list are returned as orphans for flat rendering.
+ */
+export function groupTasksByParent(tasks: Task[]): {
+  parents: Task[];
+  subsByParent: Map<string, Task[]>;
+  orphanSubs: Task[];
+} {
+  const sortFn = (a: Task, b: Task) =>
+    a.order !== b.order
+      ? a.order - b.order
+      : a.created_at.localeCompare(b.created_at);
+
+  const parentIds = new Set(
+    tasks.filter((t) => !t.parent_task_id).map((t) => t.id)
+  );
+  const parents: Task[] = [];
+  const subsByParent = new Map<string, Task[]>();
+  const orphanSubs: Task[] = [];
+
+  for (const t of tasks) {
+    if (!t.parent_task_id) {
+      parents.push(t);
+    } else if (parentIds.has(t.parent_task_id)) {
+      const arr = subsByParent.get(t.parent_task_id) ?? [];
+      arr.push(t);
+      subsByParent.set(t.parent_task_id, arr);
+    } else {
+      orphanSubs.push(t);
+    }
+  }
+
+  parents.sort(sortFn);
+  for (const arr of subsByParent.values()) arr.sort(sortFn);
+  orphanSubs.sort(sortFn);
+
+  return { parents, subsByParent, orphanSubs };
+}
+
 /** Groups tasks by date for project pages (no date range required). */
 export function groupTasksByDate(tasks: Task[]): TaskGroup[] {
   const map = new Map<string, Task[]>();

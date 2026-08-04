@@ -9,19 +9,25 @@ import { createContext, useCallback, useContext, useRef } from 'react';
 // without lifting all task state into a shared store.
 export type OptimisticTaskAction =
   | { type: 'add'; task: Task }
-  | { type: 'remove'; id: string };
+  | { type: 'remove'; id: string }
+  | { type: 'update'; id: string; patch: Partial<Task> }
+  | { type: 'completeCascade'; parentId: string; completedAt: string };
 
 type Subscriber = (action: OptimisticTaskAction) => void;
 
 type OptimisticTasksContextType = {
   publishAdd: (task: Task) => void;
   publishRemove: (id: string) => void;
+  publishUpdate: (id: string, patch: Partial<Task>) => void;
+  publishCompleteCascade: (parentId: string) => void;
   subscribe: (fn: Subscriber) => () => void;
 };
 
 const OptimisticTasksContext = createContext<OptimisticTasksContextType>({
   publishAdd: () => {},
   publishRemove: () => {},
+  publishUpdate: () => {},
+  publishCompleteCascade: () => {},
   subscribe: () => () => {},
 });
 
@@ -50,9 +56,26 @@ export function OptimisticTasksProvider({ children }: React.PropsWithChildren) {
     subscribers.current.forEach((fn) => fn({ type: 'remove', id }));
   }, []);
 
+  const publishUpdate = useCallback((id: string, patch: Partial<Task>) => {
+    subscribers.current.forEach((fn) => fn({ type: 'update', id, patch }));
+  }, []);
+
+  const publishCompleteCascade = useCallback((parentId: string) => {
+    const completedAt = new Date().toISOString();
+    subscribers.current.forEach((fn) =>
+      fn({ type: 'completeCascade', parentId, completedAt })
+    );
+  }, []);
+
   return (
     <OptimisticTasksContext.Provider
-      value={{ publishAdd, publishRemove, subscribe }}
+      value={{
+        publishAdd,
+        publishRemove,
+        publishUpdate,
+        publishCompleteCascade,
+        subscribe,
+      }}
     >
       {children}
     </OptimisticTasksContext.Provider>

@@ -96,6 +96,7 @@ export function SubTaskSection({
               onTitleChange={(t) => setHasTitle(!!t.trim())}
               onCancel={() => setAddingSubTask(false)}
               autoFocus
+              isSubTask
             />
           </div>
           <div className="border-border flex items-center justify-end gap-2 border-t px-3 py-2">

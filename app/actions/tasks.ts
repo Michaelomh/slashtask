@@ -21,16 +21,35 @@ type CreateTaskInput = {
 export async function createTask(input: CreateTaskInput): Promise<Task> {
   const { supabase, user } = await getDbClient();
 
+  let projectId = input.project_id ?? null;
+  let dueDate = input.due_date ?? null;
+
+  // Subtasks always inherit project and due date from their parent.
+  if (input.parent_task_id) {
+    const { data: parent, error: parentErr } = await supabase
+      .from('tasks')
+      .select('project_id, due_date')
+      .eq('id', input.parent_task_id)
+      .eq('user_id', user.id)
+      .single();
+    if (parentErr || !parent) {
+      console.error('[createTask] parent lookup failed', parentErr);
+      throw new Error('Failed to create task');
+    }
+    projectId = parent.project_id ?? null;
+    dueDate = parent.due_date ?? null;
+  }
+
   const { data, error } = await supabase
     .from('tasks')
     .insert({
       title: input.title,
       description: input.description ?? null,
       description_text: input.description_text ?? null,
-      project_id: input.project_id ?? null,
+      project_id: projectId,
       priority: input.priority ?? DEFAULT_PRIORITY_INDEX,
       effort: input.effort ?? DEFAULT_EFFORT_INDEX,
-      due_date: input.due_date ?? null,
+      due_date: dueDate,
       parent_task_id: input.parent_task_id ?? null,
       order: input.order ?? 0,
       user_id: user.id,
@@ -71,6 +90,23 @@ export async function updateTask(
     body.completed_at = body.is_completed ? new Date().toISOString() : null;
   }
 
+  // Subtasks can't have their project or due date edited directly; those
+  // fields are owned by the parent and propagated below.
+  const { data: existing, error: existingErr } = await supabase
+    .from('tasks')
+    .select('parent_task_id')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+  if (existingErr || !existing) {
+    console.error('[updateTask] lookup failed', existingErr);
+    throw new Error('Failed to update task');
+  }
+  if (existing.parent_task_id) {
+    delete body.project_id;
+    delete body.due_date;
+  }
+
   const { data, error } = await supabase
     .from('tasks')
     .update(body)
@@ -83,6 +119,43 @@ export async function updateTask(
     console.error('[updateTask]', error);
     throw new Error('Failed to update task');
   }
+
+  // Cascade project/due_date changes from a parent down to its subtasks.
+  if (!existing.parent_task_id) {
+    const cascade: { project_id?: string | null; due_date?: string | null } =
+      {};
+    if ('project_id' in input) cascade.project_id = input.project_id ?? null;
+    if ('due_date' in input) cascade.due_date = input.due_date ?? null;
+    if (Object.keys(cascade).length > 0) {
+      const { error: cascadeErr } = await supabase
+        .from('tasks')
+        .update(cascade)
+        .eq('parent_task_id', id)
+        .eq('user_id', user.id)
+        .eq('is_deleted', false);
+      if (cascadeErr) {
+        console.error('[updateTask] cascade failed', cascadeErr);
+        throw new Error('Failed to update task');
+      }
+    }
+
+    // Completing a parent also completes all its incomplete subtasks. The
+    // reverse (un-completing) intentionally doesn't cascade.
+    if (input.is_completed === true) {
+      const { error: completeErr } = await supabase
+        .from('tasks')
+        .update({ is_completed: true, completed_at: body.completed_at })
+        .eq('parent_task_id', id)
+        .eq('user_id', user.id)
+        .eq('is_deleted', false)
+        .eq('is_completed', false);
+      if (completeErr) {
+        console.error('[updateTask] complete cascade failed', completeErr);
+        throw new Error('Failed to update task');
+      }
+    }
+  }
+
   revalidatePath('/', 'page');
   revalidatePath('/completed', 'page');
   revalidatePath('/project/[slug]', 'page');

@@ -7,6 +7,7 @@ import {
   ProjectsProviderType,
 } from '@/contexts/projects-context';
 import { TaskModalProvider } from '@/contexts/task-modal-context';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 type AppProvidersType = ProjectsProviderType;
 
@@ -22,7 +23,9 @@ export function AppProviders({
     >
       <NewTaskProvider>
         <TaskModalProvider>
-          <OptimisticTasksProvider>{children}</OptimisticTasksProvider>
+          <OptimisticTasksProvider>
+            <TooltipProvider delay={300}>{children}</TooltipProvider>
+          </OptimisticTasksProvider>
         </TaskModalProvider>
       </NewTaskProvider>
     </ProjectsProvider>

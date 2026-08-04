@@ -1,4 +1,6 @@
 import { isPast, startOfDay, addDays } from 'date-fns';
+import { PriorityValues } from './priority';
+import { EffortValues } from './effort';
 
 export type Task = {
   id: string;
@@ -6,8 +8,8 @@ export type Task = {
   description: string | null;
   description_text: string | null;
   project_id: string | null;
-  priority: 1 | 2 | 3 | 4;
-  effort: 1 | 2 | 3 | 4;
+  priority: PriorityValues;
+  effort: EffortValues;
   due_date: string | null; // YYYY-MM-DD
   is_completed: boolean;
   completed_at: string | null;

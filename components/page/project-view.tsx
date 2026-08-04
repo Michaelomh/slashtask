@@ -32,6 +32,16 @@ export function ProjectView({
     OptimisticTaskAction
   >(initialTasks, (state, action) => {
     if (action.type === 'add') return [...state, action.task];
+    if (action.type === 'update')
+      return state.map((t) =>
+        t.id === action.id ? { ...t, ...action.patch } : t
+      );
+    if (action.type === 'completeCascade')
+      return state.map((t) =>
+        t.id === action.parentId || t.parent_task_id === action.parentId
+          ? { ...t, is_completed: true, completed_at: action.completedAt }
+          : t
+      );
     return state.filter((t) => t.id !== action.id);
   });
   const { subscribe } = useOptimisticTasks();

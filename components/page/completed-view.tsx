@@ -20,6 +20,11 @@ export function CompletedView({ tasks: initialTasks }: CompletedViewProps) {
     OptimisticTaskAction
   >(initialTasks, (state, action) => {
     if (action.type === 'add') return [...state, action.task];
+    if (action.type === 'update')
+      return state.map((t) =>
+        t.id === action.id ? { ...t, ...action.patch } : t
+      );
+    if (action.type === 'completeCascade') return state;
     return state.filter((t) => t.id !== action.id);
   });
   const { subscribe } = useOptimisticTasks();

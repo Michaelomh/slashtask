@@ -3,7 +3,11 @@
 import { useRef, useState } from 'react';
 import { Project } from '@/lib/project';
 import { Task } from '@/lib/task';
-import { formatDateHeading, TaskGroup } from '@/lib/task-grouping';
+import {
+  formatDateHeading,
+  groupTasksByParent,
+  TaskGroup,
+} from '@/lib/task-grouping';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -22,6 +26,45 @@ import { useProjects } from '@/contexts/projects-context';
 import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 import { useServerAction } from '@/hooks/use-server-action';
 
+function NestedTaskList({
+  tasks,
+  projectMap,
+}: {
+  tasks: Task[];
+  projectMap: Map<string, Project>;
+}) {
+  const { parents, subsByParent, orphanSubs } = groupTasksByParent(tasks);
+  const resolveProject = (t: Task) =>
+    t.project_id ? (projectMap.get(t.project_id) ?? null) : null;
+
+  return (
+    <div className="flex flex-col">
+      {orphanSubs.map((task) => (
+        <TaskItem key={task.id} task={task} project={resolveProject(task)} />
+      ))}
+      {parents.map((parent) => {
+        const subs = subsByParent.get(parent.id) ?? [];
+        return (
+          <div key={parent.id} className="flex flex-col">
+            <TaskItem task={parent} project={resolveProject(parent)} />
+            {subs.length > 0 && (
+              <div className="border-border/60 ml-5 border-l pl-3">
+                {subs.map((sub) => (
+                  <TaskItem
+                    key={sub.id}
+                    task={sub}
+                    project={resolveProject(sub)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 type NoDueDateGroupProps = {
   tasks: Task[];
 };
@@ -29,6 +72,7 @@ type NoDueDateGroupProps = {
 export function NoDueDateGroup({ tasks }: NoDueDateGroupProps) {
   const { projects } = useProjects();
   if (tasks.length === 0) return null;
+  const projectMap = new Map(projects.map((p) => [p.id, p]));
 
   return (
     <div className="mb-6">
@@ -36,13 +80,7 @@ export function NoDueDateGroup({ tasks }: NoDueDateGroupProps) {
         <h2 className="text-foreground text-sm font-semibold">No Due Date</h2>
         <div className="bg-border h-px flex-1" />
       </div>
-      <div className="flex flex-col">
-        {tasks.map((task) => {
-          const project =
-            projects.find((p) => p.id === task.project_id) ?? null;
-          return <TaskItem key={task.id} task={task} project={project} />;
-        })}
-      </div>
+      <NestedTaskList tasks={tasks} projectMap={projectMap} />
     </div>
   );
 }
@@ -54,6 +92,7 @@ type OverdueGroupProps = {
 export function OverdueGroup({ tasks }: OverdueGroupProps) {
   const { projects } = useProjects();
   if (tasks.length === 0) return null;
+  const projectMap = new Map(projects.map((p) => [p.id, p]));
 
   return (
     <div className="mb-6">
@@ -61,14 +100,7 @@ export function OverdueGroup({ tasks }: OverdueGroupProps) {
         <h2 className="text-destructive text-sm font-semibold">Overdue</h2>
         <div className="bg-border h-px flex-1" />
       </div>
-
-      <div className="flex flex-col">
-        {tasks.map((task) => {
-          const project =
-            projects.find((p) => p.id === task.project_id) ?? null;
-          return <TaskItem key={task.id} task={task} project={project} />;
-        })}
-      </div>
+      <NestedTaskList tasks={tasks} projectMap={projectMap} />
     </div>
   );
 }
@@ -92,17 +124,7 @@ export function DateGroup({ group, projectMap }: DateGroupProps) {
         <div className="bg-border h-px flex-1" />
       </div>
 
-      <div className={`flex flex-col rounded transition-colors`}>
-        {group.tasks.map((task) => {
-          const project = task.project_id
-            ? projectMap.get(task.project_id)
-            : null;
-
-          return (
-            <TaskItem key={task.id} task={task} project={project || null} />
-          );
-        })}
-      </div>
+      <NestedTaskList tasks={group.tasks} projectMap={projectMap} />
 
       <AddTaskComponent group={group} />
     </div>
@@ -119,17 +141,7 @@ export function TodayGroup({ group, projectMap }: DateGroupProps) {
         <div className="bg-border h-px flex-1" />
       </div>
 
-      <div className={`flex flex-col rounded transition-colors`}>
-        {group.tasks.map((task) => {
-          const project = task.project_id
-            ? projectMap.get(task.project_id)
-            : null;
-
-          return (
-            <TaskItem key={task.id} task={task} project={project || null} />
-          );
-        })}
-      </div>
+      <NestedTaskList tasks={group.tasks} projectMap={projectMap} />
 
       <AddTaskComponent group={group} />
     </div>

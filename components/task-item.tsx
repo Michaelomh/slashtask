@@ -21,11 +21,14 @@ import { useServerAction } from '@/hooks/use-server-action';
 import { CheckCircle2, Circle, Copy, RotateCcw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useProjects } from '@/contexts/projects-context';
+import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 import { useTaskModal } from '@/contexts/task-modal-context';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { fireConfetti } from '@/lib/animation';
+import { PriorityBar } from './molecule/priority-bar';
+import { EffortBadge } from './molecule/effort-badge';
 
 type TaskItemProps = {
   task: Task;
@@ -36,6 +39,7 @@ type TaskItemProps = {
 export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
   const router = useRouter();
   const { adjustProjectTaskCount, adjustCompletedCount } = useProjects();
+  const { publishCompleteCascade } = useOptimisticTasks();
   const { setPreloadTask } = useTaskModal();
   const [completed, setCompleted] = useState(task.is_completed);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -103,9 +107,17 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
     e.preventDefault();
     const next = !completed;
     setCompleted(next);
+    const incompleteSubs =
+      next && !task.parent_task_id
+        ? Math.max(
+            0,
+            (task.sub_task_total ?? 0) - (task.sub_task_completed ?? 0)
+          )
+        : 0;
+    const delta = 1 + incompleteSubs;
     if (next) {
-      adjustCompletedCount(+1);
-      adjustProjectTaskCount(task.project_id, -1);
+      adjustCompletedCount(+delta);
+      adjustProjectTaskCount(task.project_id, -delta);
     } else {
       adjustCompletedCount(-1);
       adjustProjectTaskCount(task.project_id, +1);
@@ -113,12 +125,13 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
     runComplete(async () => {
       try {
         if (next) fireConfetti();
+        if (incompleteSubs > 0) publishCompleteCascade(task.id);
         await updateTask(task.id, { is_completed: next });
       } catch {
         setCompleted(!next);
         if (next) {
-          adjustCompletedCount(-1);
-          adjustProjectTaskCount(task.project_id, +1);
+          adjustCompletedCount(-delta);
+          adjustProjectTaskCount(task.project_id, +delta);
         } else {
           adjustCompletedCount(+1);
           adjustProjectTaskCount(task.project_id, -1);
@@ -153,7 +166,7 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
                 router.push(`/task/${task.id}`);
               }}
               className={cn(
-                'hover:bg-muted/30 flex flex-1 items-start gap-3 py-3 pr-4 transition-all'
+                'hover:bg-muted/30 my-1 flex flex-1 items-center gap-3 transition-all'
               )}
             >
               {/* Checkbox */}
@@ -178,39 +191,51 @@ export function TaskItem({ task, project, variant = 'active' }: TaskItemProps) {
               </span>
 
               {/* Content */}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                {/* Title with animated strike-through line */}
-                <span
-                  className={cn(
-                    'relative w-fit max-w-full truncate text-sm transition-colors',
-                    isOverdue ? 'text-destructive' : 'text-foreground',
-                    completed && 'text-muted-foreground'
-                  )}
-                >
-                  {task.title}
-                  <span
-                    className={cn(
-                      'absolute top-1/2 left-0 h-px w-full origin-left bg-current transition-transform duration-300',
-                      completed ? 'scale-x-100' : 'scale-x-0'
-                    )}
-                  />
-                </span>
-                {task.description_text && (
-                  <span className="text-muted-foreground truncate text-xs">
-                    {task.description_text}
-                  </span>
-                )}
-              </div>
+              <div className="flex flex-1 justify-between rounded-md p-2 align-middle">
+                <div className="flex gap-2">
+                  <PriorityBar taskPriority={task.priority} hideWhenDefault />
+                  <EffortBadge taskEffort={task.effort} />
 
-              {/* Project tag */}
-              {project && (
-                <span className="text-muted-foreground ml-auto flex max-w-20 shrink-0 items-center gap-1 text-xs">
-                  <span className="font-bold" style={{ color: project.color }}>
-                    {project.emoji}
-                  </span>
-                  <span className="truncate">{project.name}</span>
-                </span>
-              )}
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    {/* Title with animated strike-through line */}
+                    <span
+                      className={cn(
+                        'relative w-fit max-w-full truncate text-sm transition-colors',
+                        isOverdue ? 'text-destructive' : 'text-foreground',
+                        completed && 'text-muted-foreground'
+                      )}
+                    >
+                      {task.title}
+                      <span
+                        className={cn(
+                          'absolute top-1/2 left-0 h-px w-full origin-left bg-current transition-transform duration-300',
+                          completed ? 'scale-x-100' : 'scale-x-0'
+                        )}
+                      />
+                    </span>
+                    {task.description_text && (
+                      <span className="text-muted-foreground truncate text-xs">
+                        {task.description_text}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {project && (
+                    <span className="text-muted-foreground ml-auto flex max-w-20 shrink-0 items-center gap-1 text-xs">
+                      <span
+                        className="font-bold"
+                        style={{ color: project.color }}
+                      >
+                        {project.emoji}
+                      </span>
+                      <span className="truncate">{project.name}</span>
+                    </span>
+                  )}
+                  <PriorityBar taskPriority={task.priority} />
+                </div>
+              </div>
             </Link>
           </div>
         </ContextMenuTrigger>

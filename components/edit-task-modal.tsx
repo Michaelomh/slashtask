@@ -18,7 +18,7 @@ import {
   updateTask,
 } from '@/app/actions/tasks';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 import { SubTaskSection } from './subtask-section';
@@ -40,13 +40,22 @@ export function EditTaskModal({
   const router = useRouter();
   const { projects, adjustProjectTaskCount, adjustCompletedCount } =
     useProjects();
-  const { publishRemove } = useOptimisticTasks();
+  const { publishRemove, publishUpdate } = useOptimisticTasks();
   const { isPending: isSaving, run: runSave } = useServerAction();
   const { isPending: isDeleting, run: runDelete } = useServerAction();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const pendingCloseRef = useRef(false);
   const editorRef = useRef<TaskEditorHandle>(null);
   const task = initialTask;
   const subTasks = initialSubTasks;
+
+  useEffect(() => {
+    if (pendingCloseRef.current && !isSaving) {
+      pendingCloseRef.current = false;
+      router.back();
+      toast.success('Task saved');
+    }
+  }, [isSaving, router]);
 
   const initialValues: TaskEditorValues = {
     title: task.title,
@@ -58,15 +67,43 @@ export function EditTaskModal({
     dueDate: task.due_date ? new Date(task.due_date + 'T00:00:00') : null,
   };
 
+  const isSubTask = task.parent_task_id != null;
+
   function handleSave(v: TaskEditorValues) {
     const oldProjectId = task.project_id ?? null;
-    const newProjectId = v.project?.id ?? null;
-    if (oldProjectId !== newProjectId && !task.is_completed) {
+    // Subtasks can't change project/due_date — server ignores them anyway.
+    const newProjectId = isSubTask ? oldProjectId : (v.project?.id ?? null);
+    const oldDueDate = task.due_date ?? null;
+    const newDueDate = isSubTask
+      ? oldDueDate
+      : v.dueDate
+        ? format(v.dueDate, 'yyyy-MM-dd')
+        : null;
+    const projectChanged = oldProjectId !== newProjectId;
+    const dueDateChanged = oldDueDate !== newDueDate;
+    const incompleteSubTaskCount = subTasks.filter(
+      (s) => !s.is_completed
+    ).length;
+
+    if (projectChanged && !task.is_completed) {
       adjustProjectTaskCount(oldProjectId, -1);
       adjustProjectTaskCount(newProjectId, 1);
     }
+    if (projectChanged && incompleteSubTaskCount > 0) {
+      adjustProjectTaskCount(oldProjectId, -incompleteSubTaskCount);
+      adjustProjectTaskCount(newProjectId, incompleteSubTaskCount);
+    }
+
     runSave(async () => {
       try {
+        if (projectChanged || dueDateChanged) {
+          for (const sub of subTasks) {
+            const patch: Partial<Task> = {};
+            if (projectChanged) patch.project_id = newProjectId;
+            if (dueDateChanged) patch.due_date = newDueDate;
+            publishUpdate(sub.id, patch);
+          }
+        }
         await updateTask(id, {
           title: v.title.trim(),
           description: v.description,
@@ -74,14 +111,17 @@ export function EditTaskModal({
           priority: v.priority,
           effort: v.effort,
           project_id: newProjectId,
-          due_date: v.dueDate ? format(v.dueDate, 'yyyy-MM-dd') : null,
+          due_date: newDueDate,
         });
-        router.back();
-        toast.success('Task saved');
+        pendingCloseRef.current = true;
       } catch {
-        if (oldProjectId !== newProjectId && !task.is_completed) {
+        if (projectChanged && !task.is_completed) {
           adjustProjectTaskCount(oldProjectId, 1);
           adjustProjectTaskCount(newProjectId, -1);
+        }
+        if (projectChanged && incompleteSubTaskCount > 0) {
+          adjustProjectTaskCount(oldProjectId, incompleteSubTaskCount);
+          adjustProjectTaskCount(newProjectId, -incompleteSubTaskCount);
         }
         toast.error('Failed to save task');
       }
@@ -155,8 +195,11 @@ export function EditTaskModal({
               ref={editorRef}
               initialValues={initialValues}
               onSubmit={handleSave}
+              isSubTask={isSubTask}
             />
-            <SubTaskSection subTasks={subTasks} parentTask={task} />
+            {!isSubTask && (
+              <SubTaskSection subTasks={subTasks} parentTask={task} />
+            )}
           </div>
 
           <div className="border-border flex items-center justify-between border-t px-4 py-3">

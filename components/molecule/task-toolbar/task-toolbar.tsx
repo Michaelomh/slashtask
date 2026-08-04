@@ -22,6 +22,7 @@ type TaskToolbarProps = {
   effort: number;
   onEffortChange: (v: number) => void;
   className?: string;
+  isSubTask?: boolean;
 };
 
 export function TaskToolbar({
@@ -34,6 +35,7 @@ export function TaskToolbar({
   effort,
   onEffortChange,
   className,
+  isSubTask = false,
 }: TaskToolbarProps) {
   const selectedPriority =
     PRIORITIES.find((p) => p.value === priority) || PRIORITIES[3];
@@ -42,9 +44,17 @@ export function TaskToolbar({
   return (
     <div className={cn('relative', className)}>
       <div className="flex flex-wrap items-center gap-2">
-        <ProjectSelector project={project} onProjectChange={onProjectChange} />
+        <ProjectSelector
+          project={project}
+          onProjectChange={onProjectChange}
+          disabled={isSubTask}
+        />
 
-        <DueDateSelector value={dueDate} onChange={onDueDateChange} />
+        <DueDateSelector
+          value={dueDate}
+          onChange={onDueDateChange}
+          disabled={isSubTask}
+        />
 
         <PrioritySelector
           priority={priority as PriorityValues}
