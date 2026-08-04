@@ -1,8 +1,12 @@
 'use client';
 
 import { Task } from '@/lib/task';
-import { useEffect, useState } from 'react';
+import { useEffect, useOptimistic } from 'react';
 import { useProjects } from '@/contexts/projects-context';
+import {
+  OptimisticTaskAction,
+  useOptimisticTasks,
+} from '@/contexts/optimistic-tasks-context';
 import { TaskItem } from '../task-item';
 
 type CompletedViewProps = {
@@ -11,11 +15,31 @@ type CompletedViewProps = {
 
 export function CompletedView({ tasks: initialTasks }: CompletedViewProps) {
   const { projects } = useProjects();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, dispatchOptimistic] = useOptimistic<
+    Task[],
+    OptimisticTaskAction
+  >(initialTasks, (state, action) => {
+    if (action.type === 'add') return [...state, action.task];
+    if (action.type === 'update')
+      return state.map((t) =>
+        t.id === action.id ? { ...t, ...action.patch } : t
+      );
+    if (action.type === 'completeCascade') return state;
+    return state.filter((t) => t.id !== action.id);
+  });
+  const { subscribe } = useOptimisticTasks();
 
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
+  useEffect(
+    () =>
+      subscribe((action) => {
+        if (action.type === 'add') {
+          if (action.task.is_completed) dispatchOptimistic(action);
+        } else {
+          dispatchOptimistic(action);
+        }
+      }),
+    [subscribe, dispatchOptimistic]
+  );
 
   return (
     <div className="flex flex-col">

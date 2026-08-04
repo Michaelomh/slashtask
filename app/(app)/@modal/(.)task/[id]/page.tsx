@@ -1,41 +1,16 @@
+import { getTaskWithSubtasks } from '@/app/actions/tasks';
 import { EditTaskModal } from '@/components/edit-task-modal';
-import { Task } from '@/lib/task';
-import { getDbClient } from '@/utils/supabase/action-client';
 import { notFound } from 'next/navigation';
 
-export default async function InterceptedTaskDetailPage({
+export default async function InterceptedEditTaskPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase, user } = await getDbClient();
-
-  const [{ data: task }, { data: subTasks }] = await Promise.all([
-    supabase
-      .from('tasks')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .eq('is_deleted', false)
-      .single(),
-    supabase
-      .from('tasks')
-      .select('*')
-      .eq('parent_task_id', id)
-      .eq('user_id', user.id)
-      .eq('is_deleted', false)
-      .order('due_date', { ascending: true })
-      .order('order', { ascending: true }),
-  ]);
-
+  const { task, subTasks } = await getTaskWithSubtasks(id);
   if (!task) notFound();
-
   return (
-    <EditTaskModal
-      id={id}
-      task={task as Task}
-      subTasks={(subTasks ?? []) as Task[]}
-    />
+    <EditTaskModal id={id} initialTask={task} initialSubTasks={subTasks} />
   );
 }

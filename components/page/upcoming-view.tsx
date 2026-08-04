@@ -9,8 +9,12 @@ import {
 import { buildDateGroups } from '@/lib/task-grouping';
 import { Task } from '@/lib/task';
 import { addDays, isBefore, max, parseISO, startOfDay } from 'date-fns';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useOptimistic, useRef, useState } from 'react';
 import { useProjects } from '@/contexts/projects-context';
+import {
+  OptimisticTaskAction,
+  useOptimisticTasks,
+} from '@/contexts/optimistic-tasks-context';
 
 const DAYS_PER_PAGE = 7;
 const MIN_HORIZON_DAYS = 30;
@@ -24,13 +28,40 @@ const defaultHorizon = addDays(today, MIN_HORIZON_DAYS);
 
 export function UpcomingView({ tasks: initialTasks }: UpcomingViewProps) {
   const { projects } = useProjects();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, dispatchOptimistic] = useOptimistic<
+    Task[],
+    OptimisticTaskAction
+  >(initialTasks, (state, action) => {
+    if (action.type === 'add') return [...state, action.task];
+    if (action.type === 'update')
+      return state.map((t) =>
+        t.id === action.id ? { ...t, ...action.patch } : t
+      );
+    if (action.type === 'completeCascade')
+      return state.map((t) =>
+        t.id === action.parentId || t.parent_task_id === action.parentId
+          ? { ...t, is_completed: true, completed_at: action.completedAt }
+          : t
+      );
+    return state.filter((t) => t.id !== action.id);
+  });
   const [visibleCount, setVisibleCount] = useState(DAYS_PER_PAGE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const { subscribe } = useOptimisticTasks();
 
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
+  useEffect(
+    () =>
+      subscribe((action) => {
+        if (action.type === 'add') {
+          if (!action.task.is_completed && !action.task.parent_task_id) {
+            dispatchOptimistic(action);
+          }
+        } else {
+          dispatchOptimistic(action);
+        }
+      }),
+    [subscribe, dispatchOptimistic]
+  );
 
   const noDueDateTasks = useMemo(() => {
     return tasks

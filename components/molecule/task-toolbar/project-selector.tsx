@@ -4,16 +4,19 @@ import { TaskToolbarDropdown } from '@/components/task-toolbar-dropdown';
 import { Button } from '@/components/ui/button';
 import { useProjects } from '@/contexts/projects-context';
 import { Project } from '@/lib/project';
+import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 
 type ProjectSelectorProps = {
   project: Project | null;
   onProjectChange: (p: Project | null) => void;
+  disabled?: boolean;
 };
 
 export function ProjectSelector({
   project,
   onProjectChange,
+  disabled = false,
 }: ProjectSelectorProps) {
   const { projects } = useProjects();
   const [isProjectOpen, setIsProjectOpen] = useState(false);
@@ -58,7 +61,8 @@ export function ProjectSelector({
         variant="outline"
         size="sm"
         onClick={() => setIsProjectOpen((v) => !v)}
-        className="max-w-40"
+        disabled={disabled}
+        className={cn('max-w-40', disabled && 'cursor-not-allowed opacity-100')}
       >
         {project ? (
           <>

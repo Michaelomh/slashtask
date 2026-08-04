@@ -33,11 +33,8 @@ const navLinks = [
   { href: '/completed', label: 'Completed', icon: CheckCircle2 },
 ];
 
-type SidebarContentProps = {
-  completedCount: number;
-};
-
-export function SidebarContent({ completedCount }: SidebarContentProps) {
+export function SidebarContent() {
+  const { completedCount } = useProjects();
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -118,15 +115,18 @@ export function SidebarContent({ completedCount }: SidebarContentProps) {
   }
 
   async function handleProjectDelete(id: string, projectSlug: string) {
+    const previousProjects = projects;
+    const onProjectPage = pathname.includes(`/project/${projectSlug}`);
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    if (onProjectPage) {
+      startTransition(() => router.push('/upcoming'));
+    }
     try {
       const deleted = await deleteProject(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-
       toast.success(`${deleted.name} project has been successfully deleted.`);
-      if (pathname.includes(`/project/${projectSlug}`)) {
-        router.push('/');
-      }
+      setEditTarget(null);
     } catch {
+      setProjects(previousProjects);
       toast.error('Failed to delete project');
     }
   }
@@ -168,6 +168,7 @@ export function SidebarContent({ completedCount }: SidebarContentProps) {
             <Link
               key={href}
               href={href}
+              prefetch={true}
               onClick={(e) => navigate(href, e)}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -232,6 +233,7 @@ export function SidebarContent({ completedCount }: SidebarContentProps) {
               >
                 <Link
                   href={projectHref}
+                  prefetch={true}
                   onClick={(e) => navigate(projectHref, e)}
                   className={cn(
                     'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
@@ -311,14 +313,10 @@ export function SidebarContent({ completedCount }: SidebarContentProps) {
   );
 }
 
-type SidebarProps = {
-  completedCount: number;
-};
-
-export function Sidebar({ completedCount }: SidebarProps) {
+export function Sidebar() {
   return (
     <aside className="border-sidebar-border bg-sidebar hidden w-64 shrink-0 border-r md:flex md:flex-col">
-      <SidebarContent completedCount={completedCount} />
+      <SidebarContent />
     </aside>
   );
 }

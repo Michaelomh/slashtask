@@ -1,6 +1,6 @@
 import { UpcomingView } from '@/components/page/upcoming-view';
 import { Task } from '@/lib/task';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, getUser } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { Metadata } from 'next/types';
 
@@ -13,10 +13,7 @@ export const metadata: Metadata = { title: 'Upcoming' };
 export default async function UpcomingPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   const [tasksResult] = await Promise.all([
     supabase

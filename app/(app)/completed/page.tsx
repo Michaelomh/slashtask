@@ -1,7 +1,7 @@
 import { CompletedView } from '@/components/page/completed-view';
 import { TaskItem } from '@/components/task-item';
 import { Task } from '@/lib/task';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, getUser } from '@/utils/supabase/server';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
@@ -14,10 +14,7 @@ type RawTask = Task & {
 export default async function CompletedPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   const [tasksResult] = await Promise.all([
     supabase

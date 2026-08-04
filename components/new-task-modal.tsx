@@ -5,17 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   TaskEditor,
+  TaskEditorHandle,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
-import { Task } from '@/lib/task';
+import { truncateDescriptionText, Task } from '@/lib/task';
 import { format } from 'date-fns';
+import { useProjects } from '@/contexts/projects-context';
+import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { formatDueDate } from '@/lib/date';
 import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
 import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
+import { useServerAction } from '@/hooks/use-server-action';
 
 type NewTaskModalProps = {
   initialTask?: Task;
@@ -29,6 +33,11 @@ export function NewTaskModal({
   onClose,
 }: NewTaskModalProps) {
   const router = useRouter();
+  const { adjustProjectTaskCount } = useProjects();
+  const { publishAdd } = useOptimisticTasks();
+  const { isPending, run } = useServerAction();
+  const editorRef = useRef<TaskEditorHandle>(null);
+  const [hasTitle, setHasTitle] = useState(!!initialTask?.title.trim());
 
   const initialValues: TaskEditorValues = {
     title: initialTask ? initialTask.title : '',
@@ -40,9 +49,6 @@ export function NewTaskModal({
     dueDate: initialTask ? formatDueDate(initialTask.due_date) : null,
   };
 
-  const [values, setValues] = useState<TaskEditorValues>(initialValues);
-  const [saving, setSaving] = useState(false);
-
   function handleClose() {
     if (onClose) {
       onClose();
@@ -51,25 +57,53 @@ export function NewTaskModal({
     }
   }
 
-  async function handleSubmit() {
-    if (!values.title.trim() || saving) return;
-    setSaving(true);
-    try {
-      await createTask({
-        title: values.title.trim(),
-        description: values.description.trim() || null,
-        description_text: values.descriptionPlain.trim().slice(0, 500) || null,
-        project_id: values.project?.id ?? null,
-        priority: values.priority,
-        effort: values.effort,
-        due_date: values.dueDate ? format(values.dueDate, 'yyyy-MM-dd') : null,
-      });
-      handleClose();
-      router.refresh();
-    } catch {
-      toast.error('Failed to create task');
-      setSaving(false);
-    }
+  function handleCreate(values: TaskEditorValues) {
+    const projectId = values.project?.id ?? null;
+    const trimmedTitle = values.title.trim();
+    const trimmedDescription = values.description.trim() || null;
+    const description_text = truncateDescriptionText(values.descriptionPlain);
+    const due_date = values.dueDate
+      ? format(values.dueDate, 'yyyy-MM-dd')
+      : null;
+    const now = new Date().toISOString();
+    const optimisticTask: Task = {
+      id: crypto.randomUUID(),
+      title: trimmedTitle,
+      description: trimmedDescription,
+      description_text,
+      project_id: projectId,
+      priority: values.priority as Task['priority'],
+      effort: values.effort as Task['effort'],
+      due_date,
+      is_completed: false,
+      completed_at: null,
+      order: 0,
+      is_deleted: false,
+      parent_task_id: null,
+      recurrence_rule: null,
+      user_id: '',
+      created_at: now,
+      updated_at: now,
+    };
+    adjustProjectTaskCount(projectId, 1);
+    handleClose();
+    run(async () => {
+      publishAdd(optimisticTask);
+      try {
+        await createTask({
+          title: trimmedTitle,
+          description: trimmedDescription,
+          description_text,
+          project_id: projectId,
+          priority: values.priority,
+          effort: values.effort,
+          due_date,
+        });
+      } catch {
+        adjustProjectTaskCount(projectId, -1);
+        toast.error('Failed to create task');
+      }
+    });
   }
 
   return (
@@ -77,9 +111,10 @@ export function NewTaskModal({
       <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-lg">
         <div className="px-4 pt-4 pb-3">
           <TaskEditor
+            ref={editorRef}
             initialValues={initialValues}
-            onChange={setValues}
-            onSubmit={handleSubmit}
+            onSubmit={handleCreate}
+            onTitleChange={(t) => setHasTitle(!!t.trim())}
             onCancel={onClose}
             autoFocus
           />
@@ -91,16 +126,16 @@ export function NewTaskModal({
               variant="outline"
               size="sm"
               onClick={onClose}
-              disabled={saving}
+              disabled={isPending}
             >
               Cancel
             </Button>
             <Button
               size="sm"
-              disabled={!values.title.trim() || saving}
-              onClick={handleSubmit}
+              disabled={!hasTitle || isPending}
+              onClick={() => editorRef.current?.submit()}
             >
-              {saving ? <Spinner size="sm" className="mr-1.5" /> : null}
+              {isPending ? <Spinner size="sm" className="mr-1.5" /> : null}
               Add task
             </Button>
           </div>

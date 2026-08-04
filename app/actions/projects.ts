@@ -34,7 +34,6 @@ export async function createProject(input: ProjectInput): Promise<Project> {
     console.error('[createProject]', error);
     throw new Error(error.message);
   }
-  revalidatePath('/', 'layout');
   return data as Project;
 }
 
@@ -59,7 +58,7 @@ export async function updateProject(
     console.error('[updateProject]', error);
     throw new Error(error.message);
   }
-  revalidatePath('/', 'layout');
+  revalidatePath('/project/[slug]', 'page');
   return data as Project;
 }
 
@@ -83,7 +82,9 @@ export async function deleteProject(id: string): Promise<Project> {
     .single();
 
   if (error) throw new Error('Failed to delete project');
-  revalidatePath('/', 'layout');
+  revalidatePath('/project/[slug]', 'page');
+  revalidatePath('/', 'page');
+  revalidatePath('/completed', 'page');
 
   return data as Project;
 }

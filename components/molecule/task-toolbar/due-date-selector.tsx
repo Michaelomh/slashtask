@@ -15,6 +15,7 @@ type DueDateSelectorProps = {
   value: Date | null;
   onChange: (date: Date | null) => void;
   className?: string;
+  disabled?: boolean;
 };
 
 function formatDateLabel(date: Date): string {
@@ -27,23 +28,26 @@ export function DueDateSelector({
   value,
   onChange,
   className,
+  disabled = false,
 }: DueDateSelectorProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={disabled ? false : open} onOpenChange={setOpen}>
       <PopoverTrigger
+        disabled={disabled}
         className={cn(
           'inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-sm transition-colors',
           value
             ? 'border-green-500/40 text-green-500 hover:border-green-500/60'
             : 'border-border text-muted-foreground hover:border-border/80 hover:text-foreground',
+          disabled && 'cursor-default opacity-50 hover:border-green-500/40',
           className
         )}
       >
         <CalendarIcon className="size-3.5 shrink-0" />
         <span>{value ? formatDateLabel(value) : 'Date'}</span>
-        {value && (
+        {value && !disabled && (
           <span
             role="button"
             tabIndex={0}

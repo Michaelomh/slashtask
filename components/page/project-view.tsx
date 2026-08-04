@@ -8,22 +8,61 @@ import {
 import { groupTasksByDate } from '@/lib/task-grouping';
 import { Task } from '@/lib/task';
 import { isBefore, parseISO, startOfDay } from 'date-fns';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useOptimistic } from 'react';
 import { useProjects } from '@/contexts/projects-context';
+import {
+  OptimisticTaskAction,
+  useOptimisticTasks,
+} from '@/contexts/optimistic-tasks-context';
 
 const today = startOfDay(new Date());
 
 type ProjectViewProps = {
   tasks: Task[];
+  projectId: string;
 };
 
-export function ProjectView({ tasks: initialTasks }: ProjectViewProps) {
+export function ProjectView({
+  tasks: initialTasks,
+  projectId,
+}: ProjectViewProps) {
   const { projects } = useProjects();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, dispatchOptimistic] = useOptimistic<
+    Task[],
+    OptimisticTaskAction
+  >(initialTasks, (state, action) => {
+    if (action.type === 'add') return [...state, action.task];
+    if (action.type === 'update')
+      return state.map((t) =>
+        t.id === action.id ? { ...t, ...action.patch } : t
+      );
+    if (action.type === 'completeCascade')
+      return state.map((t) =>
+        t.id === action.parentId || t.parent_task_id === action.parentId
+          ? { ...t, is_completed: true, completed_at: action.completedAt }
+          : t
+      );
+    return state.filter((t) => t.id !== action.id);
+  });
+  const { subscribe } = useOptimisticTasks();
 
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
+  useEffect(
+    () =>
+      subscribe((action) => {
+        if (action.type === 'add') {
+          if (
+            !action.task.is_completed &&
+            !action.task.parent_task_id &&
+            action.task.project_id === projectId
+          ) {
+            dispatchOptimistic(action);
+          }
+        } else {
+          dispatchOptimistic(action);
+        }
+      }),
+    [subscribe, dispatchOptimistic, projectId]
+  );
 
   const noDueDateTasks = useMemo(() => {
     return tasks

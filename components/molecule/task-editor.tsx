@@ -3,11 +3,13 @@
 import { RichTextEditor } from '@/components/molecule/rich-text-editor';
 import { TaskToolbar } from '@/components/molecule/task-toolbar/task-toolbar';
 import { TitleInput } from '@/components/title-input';
-import { Project } from '@/lib/project';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
 import { DEFAULT_EFFORT_INDEX } from '@/lib/effort';
+import { DEFAULT_PRIORITY_INDEX } from '@/lib/priority';
+import { Project } from '@/lib/project';
+import { cn } from '@/lib/utils';
+import { useForm } from '@tanstack/react-form';
+import { forwardRef, useImperativeHandle } from 'react';
+import { z } from 'zod';
 
 export type TaskEditorValues = {
   title: string;
@@ -19,7 +21,7 @@ export type TaskEditorValues = {
   dueDate: Date | null;
 };
 
-export const INITIAL_EMPTY_TASK = {
+export const INITIAL_EMPTY_TASK: TaskEditorValues = {
   title: '',
   description: '',
   descriptionPlain: '',
@@ -29,130 +31,133 @@ export const INITIAL_EMPTY_TASK = {
   dueDate: null,
 };
 
+const taskEditorSchema = z.object({
+  title: z.string().min(1),
+  description: z.string(),
+  descriptionPlain: z.string(),
+  priority: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
+  effort: z.union([
+    z.literal(0),
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(4),
+  ]),
+  project: z.custom<Project | null>(),
+  dueDate: z.date().nullable(),
+});
+
+export type TaskEditorHandle = {
+  submit: () => void;
+  reset: (values?: Partial<TaskEditorValues>) => void;
+};
+
 type TaskEditorProps = {
   initialValues?: Partial<TaskEditorValues>;
-  onChange: (values: TaskEditorValues) => void;
-  onSubmit?: () => void;
+  onSubmit?: (values: TaskEditorValues) => void;
+  onTitleChange?: (title: string) => void;
   onCancel?: () => void;
   autoFocus?: boolean;
   titlePlaceholder?: string;
   className?: string;
+  isSubTask?: boolean;
 };
 
-export function TaskEditor({
-  initialValues,
-  onChange,
-  onSubmit,
-  onCancel,
-  autoFocus,
-  titlePlaceholder = 'Task name',
-  className,
-}: TaskEditorProps) {
-  const [title, setTitle] = useState(initialValues?.title ?? '');
-  const [description, setDescription] = useState(
-    initialValues?.description ?? ''
-  );
-  const [descriptionPlain, setDescriptionPlain] = useState(
-    initialValues?.descriptionPlain ?? ''
-  );
-  const [dueDate, setDueDate] = useState<Date | null>(
-    initialValues?.dueDate ?? null
-  );
-  const [priority, setPriority] = useState(
-    initialValues?.priority ?? DEFAULT_PRIORITY_INDEX
-  );
-  const [effort, setEffort] = useState(
-    initialValues?.effort ?? DEFAULT_EFFORT_INDEX
-  );
-  const [project, setProject] = useState<Project | null>(
-    initialValues?.project ?? null
-  );
-
-  // Fires onChange with current state, applying any in-flight overrides to avoid stale closures.
-  function handleOnChange(overrides: Partial<TaskEditorValues> = {}) {
-    onChange({
-      title,
-      description,
-      descriptionPlain,
-      priority,
-      effort,
-      project,
-      dueDate,
-      ...overrides,
-    });
-  }
-
-  function handleTitleChange(val: string) {
-    setTitle(val);
-    handleOnChange({ title: val });
-  }
-
-  function handleDescriptionChange(
-    description: string,
-    descriptionPlain: string
+export const TaskEditor = forwardRef<TaskEditorHandle, TaskEditorProps>(
+  function TaskEditor(
+    {
+      initialValues,
+      onSubmit: onSubmitProp,
+      onTitleChange,
+      onCancel,
+      autoFocus,
+      titlePlaceholder = 'Task name',
+      className,
+      isSubTask = false,
+    },
+    ref
   ) {
-    setDescription(description);
-    setDescriptionPlain(descriptionPlain);
-    handleOnChange({ description, descriptionPlain });
-  }
+    const form = useForm({
+      defaultValues: {
+        title: initialValues?.title ?? '',
+        description: initialValues?.description ?? '',
+        descriptionPlain: initialValues?.descriptionPlain ?? '',
+        priority: initialValues?.priority ?? DEFAULT_PRIORITY_INDEX,
+        effort: initialValues?.effort ?? DEFAULT_EFFORT_INDEX,
+        project: (initialValues?.project ?? null) as Project | null,
+        dueDate: (initialValues?.dueDate ?? null) as Date | null,
+      },
+      validators: { onSubmit: taskEditorSchema },
+      onSubmit: ({ value }) => {
+        onSubmitProp?.(value as TaskEditorValues);
+      },
+    });
 
-  function handleProjectChange(project: Project | null) {
-    setProject(project);
-    handleOnChange({ project });
-  }
+    useImperativeHandle(ref, () => ({
+      submit: () => form.handleSubmit(),
+      reset: (values) => form.reset({ ...INITIAL_EMPTY_TASK, ...values }),
+    }));
 
-  function handleDueDateChange(dueDate: Date | null) {
-    setDueDate(dueDate);
-    handleOnChange({ dueDate });
+    return (
+      <div className={cn('flex flex-col gap-2', className)}>
+        <form.Field name="title">
+          {(field) => (
+            <TitleInput
+              autoFocus={autoFocus}
+              value={field.state.value}
+              placeholder={titlePlaceholder}
+              inputClassName="placeholder:text-muted-foreground/50 w-full bg-transparent text-lg font-medium focus:outline-none"
+              onChange={(e) => {
+                field.handleChange(e.target.value);
+                onTitleChange?.(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') form.handleSubmit();
+                if (e.key === 'Escape') onCancel?.();
+              }}
+            />
+          )}
+        </form.Field>
+        <form.Field name="description">
+          {(field) => (
+            <RichTextEditor
+              value={field.state.value}
+              onChange={(markdown, plainText) => {
+                field.handleChange(markdown);
+                form.setFieldValue('descriptionPlain', plainText);
+              }}
+              placeholder="Description"
+            />
+          )}
+        </form.Field>
+        <form.Field name="project">
+          {(projectField) => (
+            <form.Field name="dueDate">
+              {(dueDateField) => (
+                <form.Field name="priority">
+                  {(priorityField) => (
+                    <form.Field name="effort">
+                      {(effortField) => (
+                        <TaskToolbar
+                          project={projectField.state.value}
+                          onProjectChange={projectField.handleChange}
+                          dueDate={dueDateField.state.value}
+                          onDueDateChange={dueDateField.handleChange}
+                          priority={priorityField.state.value}
+                          onPriorityChange={priorityField.handleChange}
+                          effort={effortField.state.value}
+                          onEffortChange={effortField.handleChange}
+                          isSubTask={isSubTask}
+                        />
+                      )}
+                    </form.Field>
+                  )}
+                </form.Field>
+              )}
+            </form.Field>
+          )}
+        </form.Field>
+      </div>
+    );
   }
-
-  function handlePriorityChange(priority: number) {
-    setPriority(priority);
-    handleOnChange({ priority });
-  }
-
-  function handleEffortChange(effort: number) {
-    setEffort(effort);
-    handleOnChange({ effort });
-  }
-
-  function handleSubmit() {
-    if (!title.trim()) return;
-    setTitle(title);
-    onSubmit?.();
-  }
-
-  return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      <TitleInput
-        autoFocus={autoFocus}
-        value={title}
-        placeholder={titlePlaceholder}
-        inputClassName="placeholder:text-muted-foreground/50 w-full bg-transparent text-lg font-medium focus:outline-none"
-        onChange={(e) => {
-          const val = e.target.value;
-          handleTitleChange(val);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') handleSubmit();
-          if (e.key === 'Escape') onCancel?.();
-        }}
-      />
-      <RichTextEditor
-        value={description}
-        onChange={handleDescriptionChange}
-        placeholder="Description"
-      />
-      <TaskToolbar
-        project={project}
-        onProjectChange={handleProjectChange}
-        dueDate={dueDate}
-        onDueDateChange={handleDueDateChange}
-        priority={priority}
-        onPriorityChange={handlePriorityChange}
-        effort={effort}
-        onEffortChange={handleEffortChange}
-      />
-    </div>
-  );
-}
+);

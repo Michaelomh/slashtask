@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   TaskEditor,
+  TaskEditorHandle,
   TaskEditorValues,
 } from '@/components/molecule/task-editor';
 import { Spinner } from '@/components/ui/spinner';
-import { Project } from '@/lib/project';
 import { Task } from '@/lib/task';
 import { format } from 'date-fns';
 import { Save, Trash2 } from 'lucide-react';
@@ -18,21 +18,44 @@ import {
   updateTask,
 } from '@/app/actions/tasks';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmationDialog } from './molecule/delete-confirmation-dialog';
 import { SubTaskSection } from './subtask-section';
 import { useProjects } from '@/contexts/projects-context';
+import { useOptimisticTasks } from '@/contexts/optimistic-tasks-context';
+import { useServerAction } from '@/hooks/use-server-action';
 
 type EditTaskModalProps = {
   id: string;
-  task: Task;
-  subTasks: Task[];
+  initialTask: Task;
+  initialSubTasks: Task[];
 };
 
-export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
+export function EditTaskModal({
+  id,
+  initialTask,
+  initialSubTasks,
+}: EditTaskModalProps) {
   const router = useRouter();
-  const { projects } = useProjects();
+  const { projects, adjustProjectTaskCount, adjustCompletedCount } =
+    useProjects();
+  const { publishRemove, publishUpdate } = useOptimisticTasks();
+  const { isPending: isSaving, run: runSave } = useServerAction();
+  const { isPending: isDeleting, run: runDelete } = useServerAction();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const pendingCloseRef = useRef(false);
+  const editorRef = useRef<TaskEditorHandle>(null);
+  const task = initialTask;
+  const subTasks = initialSubTasks;
+
+  useEffect(() => {
+    if (pendingCloseRef.current && !isSaving) {
+      pendingCloseRef.current = false;
+      router.back();
+      toast.success('Task saved');
+    }
+  }, [isSaving, router]);
 
   const initialValues: TaskEditorValues = {
     title: task.title,
@@ -44,31 +67,65 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
     dueDate: task.due_date ? new Date(task.due_date + 'T00:00:00') : null,
   };
 
-  const valuesRef = useRef<TaskEditorValues>(initialValues);
-  const [deleting, setDeleting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const isSubTask = task.parent_task_id != null;
 
-  async function handleSave() {
-    const v = valuesRef.current;
-    setIsSaving(true);
-    try {
-      await updateTask(id, {
-        title: v.title.trim(),
-        description: v.description,
-        description_text: v.descriptionPlain.slice(0, 500),
-        priority: v.priority,
-        effort: v.effort,
-        project_id: v.project?.id ?? null,
-        due_date: v.dueDate ? format(v.dueDate, 'yyyy-MM-dd') : null,
-      });
-      router.back();
-      toast.success('Task saved');
-    } catch {
-      toast.error('Failed to save task');
-    } finally {
-      setIsSaving(false);
+  function handleSave(v: TaskEditorValues) {
+    const oldProjectId = task.project_id ?? null;
+    // Subtasks can't change project/due_date — server ignores them anyway.
+    const newProjectId = isSubTask ? oldProjectId : (v.project?.id ?? null);
+    const oldDueDate = task.due_date ?? null;
+    const newDueDate = isSubTask
+      ? oldDueDate
+      : v.dueDate
+        ? format(v.dueDate, 'yyyy-MM-dd')
+        : null;
+    const projectChanged = oldProjectId !== newProjectId;
+    const dueDateChanged = oldDueDate !== newDueDate;
+    const incompleteSubTaskCount = subTasks.filter(
+      (s) => !s.is_completed
+    ).length;
+
+    if (projectChanged && !task.is_completed) {
+      adjustProjectTaskCount(oldProjectId, -1);
+      adjustProjectTaskCount(newProjectId, 1);
     }
+    if (projectChanged && incompleteSubTaskCount > 0) {
+      adjustProjectTaskCount(oldProjectId, -incompleteSubTaskCount);
+      adjustProjectTaskCount(newProjectId, incompleteSubTaskCount);
+    }
+
+    runSave(async () => {
+      try {
+        if (projectChanged || dueDateChanged) {
+          for (const sub of subTasks) {
+            const patch: Partial<Task> = {};
+            if (projectChanged) patch.project_id = newProjectId;
+            if (dueDateChanged) patch.due_date = newDueDate;
+            publishUpdate(sub.id, patch);
+          }
+        }
+        await updateTask(id, {
+          title: v.title.trim(),
+          description: v.description,
+          description_text: v.descriptionPlain.slice(0, 500),
+          priority: v.priority,
+          effort: v.effort,
+          project_id: newProjectId,
+          due_date: newDueDate,
+        });
+        pendingCloseRef.current = true;
+      } catch {
+        if (projectChanged && !task.is_completed) {
+          adjustProjectTaskCount(oldProjectId, 1);
+          adjustProjectTaskCount(newProjectId, -1);
+        }
+        if (projectChanged && incompleteSubTaskCount > 0) {
+          adjustProjectTaskCount(oldProjectId, incompleteSubTaskCount);
+          adjustProjectTaskCount(newProjectId, -incompleteSubTaskCount);
+        }
+        toast.error('Failed to save task');
+      }
+    });
   }
 
   function handleDeleteClick() {
@@ -79,24 +136,51 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
     }
   }
 
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      const deletedIds =
-        subTasks.length > 0
+  function handleDelete() {
+    const allTasks = [task, ...subTasks];
+    const incompleteTasks = allTasks.filter((t) => !t.is_completed);
+    const completedTaskCount = allTasks.length - incompleteTasks.length;
+    const projectDelta = new Map<string, number>();
+    for (const t of incompleteTasks) {
+      if (t.project_id)
+        projectDelta.set(
+          t.project_id,
+          (projectDelta.get(t.project_id) ?? 0) - 1
+        );
+    }
+    for (const [projectId, delta] of projectDelta) {
+      adjustProjectTaskCount(projectId, delta);
+    }
+    if (completedTaskCount > 0) {
+      adjustCompletedCount(-completedTaskCount);
+    }
+    const hadSubTasks = subTasks.length > 0;
+    setShowDeleteConfirm(false);
+    router.back();
+    runDelete(async () => {
+      publishRemove(task.id);
+      for (const sub of subTasks) publishRemove(sub.id);
+      try {
+        const deletedIds = hadSubTasks
           ? await deleteTaskWithSubtasks(id)
           : await deleteTask(id).then(() => [id]);
-      router.back();
-      toast('Task deleted', {
-        action: {
-          label: 'Undo',
-          onClick: () => restoreTasks(deletedIds),
-        },
-      });
-    } catch {
-      toast.error('Failed to delete task');
-      setDeleting(false);
-    }
+        toast('Task deleted', {
+          duration: 5000,
+          action: {
+            label: 'Undo',
+            onClick: () => restoreTasks(deletedIds),
+          },
+        });
+      } catch {
+        for (const [projectId, delta] of projectDelta) {
+          adjustProjectTaskCount(projectId, -delta);
+        }
+        if (completedTaskCount > 0) {
+          adjustCompletedCount(+completedTaskCount);
+        }
+        toast.error('Failed to delete task');
+      }
+    });
   }
 
   return (
@@ -108,12 +192,14 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
         >
           <div className="px-4 pt-4 pb-3">
             <TaskEditor
+              ref={editorRef}
               initialValues={initialValues}
-              onChange={(v) => {
-                valuesRef.current = v;
-              }}
+              onSubmit={handleSave}
+              isSubTask={isSubTask}
             />
-            <SubTaskSection subTasks={subTasks} parentTask={task} />
+            {!isSubTask && (
+              <SubTaskSection subTasks={subTasks} parentTask={task} />
+            )}
           </div>
 
           <div className="border-border flex items-center justify-between border-t px-4 py-3">
@@ -121,10 +207,10 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
               variant="ghost"
               size="sm"
               onClick={handleDeleteClick}
-              disabled={deleting}
+              disabled={isDeleting}
               className="text-muted-foreground hover:text-destructive gap-1.5"
             >
-              {deleting ? (
+              {isDeleting ? (
                 <Spinner size="sm" />
               ) : (
                 <Trash2 className="size-3.5" />
@@ -134,7 +220,7 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleSave}
+              onClick={() => editorRef.current?.submit()}
               disabled={isSaving}
               className="gap-1.5"
             >
@@ -150,7 +236,7 @@ export function EditTaskModal({ id, task, subTasks }: EditTaskModalProps) {
         setShowDeleteConfirmationDialog={setShowDeleteConfirm}
         title="Are you sure?"
         description={`This will also delete ${subTasks.length} sub-task${subTasks.length !== 1 ? 's' : ''}.`}
-        isDeleting={deleting}
+        isDeleting={isDeleting}
         handleDelete={handleDelete}
       />
     </>
